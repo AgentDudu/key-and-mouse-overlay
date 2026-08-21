@@ -47,8 +47,23 @@ private:
         bool wheelActive = state.mmb || state.isScrolling;
         HBRUSH wheelBrush = CreateSolidBrush(wheelActive ? state.activeBg : state.inactiveText); 
 
+        HBRUSH m4Brush = CreateSolidBrush(state.mb4 ? state.activeBg : state.inactiveBg);
+        HBRUSH m5Brush = CreateSolidBrush(state.mb5 ? state.activeBg : state.inactiveBg);
+
         HPEN nullPen = CreatePen(PS_NULL, 0, RGB(0,0,0));
         HPEN oldPen = (HPEN)SelectObject(hdc, nullPen);
+
+        int sideW = (int)(8 * state.uiScale);
+        int sideH = (int)(22 * state.uiScale);
+        int sideX = sx - sideW - (int)(2 * state.uiScale);
+        
+        SelectObject(hdc, m5Brush); 
+        int m5y = sy + bh + (int)(4 * state.uiScale);
+        RoundRect(hdc, sideX, m5y, sideX + sideW, m5y + sideH, (int)(4 * state.uiScale), (int)(4 * state.uiScale));
+
+        SelectObject(hdc, m4Brush); 
+        int m4y = sy + bh + (int)(29 * state.uiScale);
+        RoundRect(hdc, sideX, m4y, sideX + sideW, m4y + sideH, (int)(4 * state.uiScale), (int)(4 * state.uiScale));
 
         SelectObject(hdc, lmbBrush);
         RoundRect(hdc, sx, sy, sx + bw, sy + bh, corner, corner);
@@ -88,6 +103,8 @@ private:
         DeleteObject(rmbBrush);
         DeleteObject(bodyBrush);
         DeleteObject(wheelBrush);
+        DeleteObject(m4Brush);
+        DeleteObject(m5Brush);
     }
 
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -123,7 +140,7 @@ private:
             DrawButton(memDC, 15, 140, 70, 25, L"SHIFT", state.keys[VK_LSHIFT] || state.keys[VK_SHIFT]);
             DrawButton(memDC, 90, 140, 70, 25, L"CTRL", state.keys[VK_LCONTROL] || state.keys[VK_CONTROL]);
             
-            DrawMouseUI(memDC, 170, 10);
+            DrawMouseUI(memDC, 220, 10);
 
             BitBlt(hdc, 0, 0, rect.right, rect.bottom, memDC, 0, 0, SRCCOPY);
 

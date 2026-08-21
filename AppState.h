@@ -12,11 +12,13 @@ public:
     bool lmb = false;
     bool rmb = false;
     bool mmb = false; 
-    bool isScrolling = false;
+    bool isScrolling = false; 
+    bool mb4 = false; 
+    bool mb5 = false; 
     
     bool isLocked = true;
     float uiScale = 1.0f;
-    const int BASE_WIDTH = 260;
+    const int BASE_WIDTH = 310;
     const int BASE_HEIGHT = 180;
     
     COLORREF activeBg = RGB(0, 255, 204);
