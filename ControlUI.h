@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "AppState.h"
 #include "OverlayUI.h"
+#include "resource.h"
 
 class ControlUI {
 private:
@@ -17,7 +18,7 @@ private:
         }
         else if (uMsg == WM_COMMAND) {
             int wmId = LOWORD(wParam);
-            if (wmId == 1) { // Toggle Lock
+            if (wmId == 1) {
                 state.isLocked = !state.isLocked;
                 LONG exStyle = GetWindowLong(state.hwndOverlay, GWL_EXSTYLE);
                 if (state.isLocked) {
@@ -57,10 +58,13 @@ public:
         wc.lpszClassName = L"ControlClass";
         wc.hCursor = LoadCursor(NULL, IDC_ARROW);
         wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+        
+        wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APP_ICON)); 
+        
         RegisterClassW(&wc);
 
         return CreateWindowExW(
-            0, L"ControlClass", L"Overlay Settings",
+            0, L"ControlClass", L"Overlay",
             WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
             100, 100, 260, 200,
             NULL, NULL, hInstance, NULL

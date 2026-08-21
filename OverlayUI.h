@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include "AppState.h"
+#include "resource.h"
 
 class OverlayUI {
 private:
@@ -75,6 +76,9 @@ public:
         wc.lpfnWndProc = WindowProc;
         wc.hInstance = hInstance;
         wc.lpszClassName = L"OverlayClass";
+        
+        wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APP_ICON));
+        
         RegisterClassW(&wc);
 
         HWND hwnd = CreateWindowExW(
