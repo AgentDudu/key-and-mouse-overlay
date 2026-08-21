@@ -34,16 +34,18 @@ private:
         int sx = (int)(x * state.uiScale);
         int sy = (int)(y * state.uiScale);
         
-        int bw = (int)(35 * state.uiScale);
-        int bh = (int)(45 * state.uiScale);
-        int gap = (int)(5 * state.uiScale);
-        int bodyH = (int)(55 * state.uiScale);
-        int corner = (int)(15 * state.uiScale);
+        int bw = (int)(35 * state.uiScale); 
+        int bh = (int)(45 * state.uiScale); 
+        int gap = (int)(5 * state.uiScale); 
+        int bodyH = (int)(55 * state.uiScale); 
+        int corner = (int)(15 * state.uiScale); 
 
         HBRUSH lmbBrush = CreateSolidBrush(state.lmb ? state.activeBg : state.inactiveBg);
         HBRUSH rmbBrush = CreateSolidBrush(state.rmb ? state.activeBg : state.inactiveBg);
         HBRUSH bodyBrush = CreateSolidBrush(state.inactiveBg);
-        HBRUSH wheelBrush = CreateSolidBrush(state.inactiveText); // Scroll wheel matches text color
+        
+        bool wheelActive = state.mmb || state.isScrolling;
+        HBRUSH wheelBrush = CreateSolidBrush(wheelActive ? state.activeBg : state.inactiveText); 
 
         HPEN nullPen = CreatePen(PS_NULL, 0, RGB(0,0,0));
         HPEN oldPen = (HPEN)SelectObject(hdc, nullPen);
@@ -90,6 +92,13 @@ private:
 
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         AppState& state = AppState::Get();
+
+        if (uMsg == WM_TIMER && wParam == 1) {
+            state.isScrolling = false;
+            KillTimer(hwnd, 1);
+            InvalidateRect(hwnd, NULL, FALSE);
+            return 0;
+        }
 
         if (uMsg == WM_PAINT) {
             PAINTSTRUCT ps;

@@ -33,6 +33,14 @@ private:
             else if (wParam == WM_LBUTTONUP) { AppState::Get().lmb = false; InvalidateRect(AppState::Get().hwndOverlay, NULL, FALSE); }
             else if (wParam == WM_RBUTTONDOWN) { AppState::Get().rmb = true; InvalidateRect(AppState::Get().hwndOverlay, NULL, FALSE); }
             else if (wParam == WM_RBUTTONUP) { AppState::Get().rmb = false; InvalidateRect(AppState::Get().hwndOverlay, NULL, FALSE); }
+            else if (wParam == WM_MBUTTONDOWN) { AppState::Get().mmb = true; InvalidateRect(AppState::Get().hwndOverlay, NULL, FALSE); }
+            else if (wParam == WM_MBUTTONUP) { AppState::Get().mmb = false; InvalidateRect(AppState::Get().hwndOverlay, NULL, FALSE); }
+            
+            else if (wParam == WM_MOUSEWHEEL) { 
+                AppState::Get().isScrolling = true; 
+                SetTimer(AppState::Get().hwndOverlay, 1, 150, NULL); 
+                InvalidateRect(AppState::Get().hwndOverlay, NULL, FALSE); 
+            }
         }
         return CallNextHookEx(Get().hMouseHook, nCode, wParam, lParam);
     }
