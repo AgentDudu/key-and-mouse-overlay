@@ -2,14 +2,18 @@
 #include "AppState.h"
 #include "InputManager.h"
 #include "OverlayUI.h"
+#include "ExtraKeysUI.h"
 #include "ControlUI.h"
 
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "gdi32.lib")
+#pragma comment(lib, "comdlg32.lib") 
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    
     AppState::Get().hwndOverlay = OverlayUI::Create(hInstance);
     HWND hwndControl = ControlUI::Create(hInstance);
+    ExtraKeysUI::Init(hInstance);
 
     InputManager::Install(hInstance);
 
