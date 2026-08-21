@@ -1,7 +1,7 @@
 #pragma once
 #include <windows.h>
 #include "AppState.h"
-#include "resource.h"
+#include "resource.h" 
 
 class OverlayUI {
 private:
@@ -13,13 +13,13 @@ private:
         int sh = (int)(h * state.uiScale);
         int fontSize = (int)(18 * state.uiScale);
 
-        HBRUSH brush = CreateSolidBrush(pressed ? RGB(0, 255, 204) : RGB(34, 34, 34));
+        HBRUSH brush = CreateSolidBrush(pressed ? state.activeBg : state.inactiveBg);
         RECT rect = { sx, sy, sx + sw, sy + sh };
         FillRect(hdc, &rect, brush);
         DeleteObject(brush);
 
         SetBkMode(hdc, TRANSPARENT);
-        SetTextColor(hdc, pressed ? RGB(0, 0, 0) : RGB(255, 255, 255));
+        SetTextColor(hdc, pressed ? state.activeText : state.inactiveText);
         
         HFONT hFont = CreateFontW(fontSize, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, 
                                   DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, 
@@ -76,9 +76,7 @@ public:
         wc.lpfnWndProc = WindowProc;
         wc.hInstance = hInstance;
         wc.lpszClassName = L"OverlayClass";
-        
         wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APP_ICON));
-        
         RegisterClassW(&wc);
 
         HWND hwnd = CreateWindowExW(
