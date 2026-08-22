@@ -40,6 +40,53 @@ public:
 
     HWND hwndOverlay = NULL;
     HWND hwndExtraKeys = NULL;    
-
     HFONT hFontUI = NULL;
+
+    wchar_t iniPath[MAX_PATH] = {0};
+
+    void InitPath() {
+        if (iniPath[0] == 0) {
+            GetModuleFileNameW(NULL, iniPath, MAX_PATH);
+            wchar_t* last = wcsrchr(iniPath, L'\\');
+            if (last) *(last + 1) = L'\0';
+            wcscat_s(iniPath, MAX_PATH, L"config.ini");
+        }
+    }
+
+    void SaveConfig() {
+        InitPath();
+        auto WriteInt = [&](const wchar_t* key, int val) {
+            wchar_t buf[32]; wsprintfW(buf, L"%d", val);
+            WritePrivateProfileStringW(L"Settings", key, buf, iniPath);
+        };
+        WriteInt(L"baseAlpha", baseAlpha); WriteInt(L"highlightAlpha", highlightAlpha); WriteInt(L"outlineAlpha", outlineAlpha);
+        WriteInt(L"activeBg", activeBg); WriteInt(L"inactiveBg", inactiveBg); WriteInt(L"activeText", activeText); WriteInt(L"inactiveText", inactiveText); WriteInt(L"outlineColor", outlineColor);
+        WriteInt(L"uiScale", (int)(uiScale * 100)); WriteInt(L"currentScheme", currentScheme);
+        WriteInt(L"showSpace", showSpace); WriteInt(L"showShift", showShift); WriteInt(L"showCtrl", showCtrl); WriteInt(L"showMB4", showMB4); WriteInt(L"showMB5", showMB5);
+        
+        for (int i = 0; i < 256; i++) {
+            wchar_t kName[16]; wsprintfW(kName, L"Key_%d", i);
+            WriteInt(kName, showExtraKey[i]);
+        }
+        
+        RECT rc; GetWindowRect(hwndOverlay, &rc);
+        WriteInt(L"OverlayX", rc.left); WriteInt(L"OverlayY", rc.top);
+    }
+
+    void LoadConfig() {
+        InitPath();
+        auto ReadInt = [&](const wchar_t* key, int defVal) { return GetPrivateProfileIntW(L"Settings", key, defVal, iniPath); };
+        
+        if (ReadInt(L"baseAlpha", -1) == -1) return; 
+
+        baseAlpha = ReadInt(L"baseAlpha", 80); highlightAlpha = ReadInt(L"highlightAlpha", 100); outlineAlpha = ReadInt(L"outlineAlpha", 0);
+        activeBg = ReadInt(L"activeBg", RGB(0, 255, 204)); inactiveBg = ReadInt(L"inactiveBg", RGB(34, 34, 34)); activeText = ReadInt(L"activeText", RGB(0, 0, 0)); inactiveText = ReadInt(L"inactiveText", RGB(255, 255, 255)); outlineColor = ReadInt(L"outlineColor", RGB(255, 255, 255));
+        uiScale = ReadInt(L"uiScale", 100) / 100.0f; currentScheme = ReadInt(L"currentScheme", 0);
+        showSpace = ReadInt(L"showSpace", 1); showShift = ReadInt(L"showShift", 1); showCtrl = ReadInt(L"showCtrl", 1); showMB4 = ReadInt(L"showMB4", 1); showMB5 = ReadInt(L"showMB5", 1);
+        
+        for (int i = 0; i < 256; i++) {
+            wchar_t kName[16]; wsprintfW(kName, L"Key_%d", i);
+            showExtraKey[i] = ReadInt(kName, showExtraKey[i]);
+        }
+    }
 };

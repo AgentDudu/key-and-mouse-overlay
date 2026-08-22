@@ -15,11 +15,11 @@ private:
             KBDLLHOOKSTRUCT* pKeyBoard = (KBDLLHOOKSTRUCT*)lParam;
             if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
                 if (pKeyBoard->vkCode < 256) AppState::Get().keys[pKeyBoard->vkCode] = true;
-                if (AppState::Get().hwndOverlay) SendMessage(AppState::Get().hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
+                if (AppState::Get().hwndOverlay) PostMessage(AppState::Get().hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
             }
             else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
                 if (pKeyBoard->vkCode < 256) AppState::Get().keys[pKeyBoard->vkCode] = false;
-                if (AppState::Get().hwndOverlay) SendMessage(AppState::Get().hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
+                if (AppState::Get().hwndOverlay) PostMessage(AppState::Get().hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
             }
         }
         return CallNextHookEx(Get().hKeyboardHook, nCode, wParam, lParam);
@@ -36,11 +36,7 @@ private:
             else if (wParam == WM_RBUTTONUP) { AppState::Get().rmb = false; triggerRedraw = true; }
             else if (wParam == WM_MBUTTONDOWN) { AppState::Get().mmb = true; triggerRedraw = true; }
             else if (wParam == WM_MBUTTONUP) { AppState::Get().mmb = false; triggerRedraw = true; }
-            else if (wParam == WM_MOUSEWHEEL) { 
-                AppState::Get().isScrolling = true; 
-                SetTimer(AppState::Get().hwndOverlay, 1, 150, NULL); 
-                triggerRedraw = true; 
-            }
+            else if (wParam == WM_MOUSEWHEEL) { AppState::Get().isScrolling = true; SetTimer(AppState::Get().hwndOverlay, 1, 150, NULL); triggerRedraw = true; }
             else if (wParam == WM_XBUTTONDOWN || wParam == WM_XBUTTONUP) {
                 bool isDown = (wParam == WM_XBUTTONDOWN);
                 if (HIWORD(pMouse->mouseData) == XBUTTON1) AppState::Get().mb4 = isDown;
@@ -48,9 +44,7 @@ private:
                 triggerRedraw = true;
             }
             
-            if (triggerRedraw && AppState::Get().hwndOverlay) {
-                SendMessage(AppState::Get().hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
-            }
+            if (triggerRedraw && AppState::Get().hwndOverlay) PostMessage(AppState::Get().hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
         }
         return CallNextHookEx(Get().hMouseHook, nCode, wParam, lParam);
     }
@@ -60,7 +54,5 @@ public:
         Get().hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, hInstance, 0);
         Get().hMouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, hInstance, 0);
     }
-    static void Remove() {
-        UnhookWindowsHookEx(Get().hKeyboardHook); UnhookWindowsHookEx(Get().hMouseHook);
-    }
+    static void Remove() { UnhookWindowsHookEx(Get().hKeyboardHook); UnhookWindowsHookEx(Get().hMouseHook); }
 };

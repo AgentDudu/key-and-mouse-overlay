@@ -8,7 +8,7 @@
 
 class OverlayUI {
 private:
-    struct LayoutInfo { int colMap[15], rowMap[5], max_r, mouseX, spaceY, shiftCtrlY, lowestY, mouseRightEdge; };
+    struct LayoutInfo { int colMap[35], rowMap[6], max_r, mouseX, spaceY, shiftCtrlY, lowestY, mouseRightEdge; };
 
     static bool GetGridPos(int key, int& base_col, float& offset_x, int& base_row) {
         if (key >= '1' && key <= '9') { base_col = key - '1'; offset_x = 0.0f; base_row = 0; return true; }
@@ -16,21 +16,55 @@ private:
         const char* r1 = "QWERTYUIOP"; for (int i = 0; i < 10; i++) if (key == r1[i]) { base_col = i; offset_x = 0.0f; base_row = 1; return true; }
         const char* r2 = "ASDFGHJKL";  for (int i = 0; i < 9; i++) if (key == r2[i]) { base_col = i; offset_x = 0.0f; base_row = 2; return true; }
         const char* r3 = "ZXCVBNM";    for (int i = 0; i < 7; i++) if (key == r3[i]) { base_col = i; offset_x = 0.5f; base_row = 3; return true; }
+        
+        if (key == VK_UP) { base_col = 16; offset_x = 0; base_row = 2; return true; }
+        if (key == VK_LEFT) { base_col = 15; offset_x = 0; base_row = 3; return true; }
+        if (key == VK_DOWN) { base_col = 16; offset_x = 0; base_row = 3; return true; }
+        if (key == VK_RIGHT) { base_col = 17; offset_x = 0; base_row = 3; return true; }
+
+        if (key == VK_DIVIDE) { base_col = 19; offset_x = 0; base_row = 0; return true; }
+        if (key == VK_MULTIPLY) { base_col = 20; offset_x = 0; base_row = 0; return true; }
+        if (key == VK_SUBTRACT) { base_col = 21; offset_x = 0; base_row = 0; return true; }
+        if (key == VK_ADD) { base_col = 22; offset_x = 0; base_row = 0; return true; }
+        if (key == VK_NUMPAD7) { base_col = 19; offset_x = 0; base_row = 1; return true; }
+        if (key == VK_NUMPAD8) { base_col = 20; offset_x = 0; base_row = 1; return true; }
+        if (key == VK_NUMPAD9) { base_col = 21; offset_x = 0; base_row = 1; return true; }
+        if (key == VK_NUMPAD4) { base_col = 19; offset_x = 0; base_row = 2; return true; }
+        if (key == VK_NUMPAD5) { base_col = 20; offset_x = 0; base_row = 2; return true; }
+        if (key == VK_NUMPAD6) { base_col = 21; offset_x = 0; base_row = 2; return true; }
+        if (key == VK_NUMPAD1) { base_col = 19; offset_x = 0; base_row = 3; return true; }
+        if (key == VK_NUMPAD2) { base_col = 20; offset_x = 0; base_row = 3; return true; }
+        if (key == VK_NUMPAD3) { base_col = 21; offset_x = 0; base_row = 3; return true; }
+        if (key == VK_RETURN) { base_col = 22; offset_x = 0; base_row = 2; return true; }
+        if (key == VK_NUMPAD0) { base_col = 19; offset_x = 0; base_row = 4; return true; }
+        if (key == VK_DECIMAL) { base_col = 21; offset_x = 0; base_row = 4; return true; }
         return false;
+    }
+
+    static const wchar_t* GetKeyString(int key, wchar_t* buf) {
+        if ((key >= '0' && key <= '9') || (key >= 'A' && key <= 'Z')) { buf[0] = (wchar_t)key; buf[1] = L'\0'; return buf; }
+        switch(key) {
+            case VK_UP: return L"↑"; case VK_DOWN: return L"↓"; case VK_LEFT: return L"←"; case VK_RIGHT: return L"→";
+            case VK_NUMPAD0: return L"0"; case VK_NUMPAD1: return L"1"; case VK_NUMPAD2: return L"2"; case VK_NUMPAD3: return L"3";
+            case VK_NUMPAD4: return L"4"; case VK_NUMPAD5: return L"5"; case VK_NUMPAD6: return L"6"; case VK_NUMPAD7: return L"7";
+            case VK_NUMPAD8: return L"8"; case VK_NUMPAD9: return L"9"; case VK_DIVIDE: return L"/"; case VK_MULTIPLY: return L"*";
+            case VK_SUBTRACT: return L"-"; case VK_ADD: return L"+"; case VK_DECIMAL: return L"."; case VK_RETURN: return L"EN";
+        }
+        return L"?";
     }
 
     static LayoutInfo ComputeLayout() {
         AppState& state = AppState::Get(); LayoutInfo li = {0};
-        bool activeCols[15] = { false }, activeRows[5] = { false };
-        for (int i = '0'; i <= 'Z'; i++) {
+        bool activeCols[35] = { false }, activeRows[6] = { false };
+        for (int i = 0; i < 256; i++) {
             if (!state.showExtraKey[i]) continue;
             int bc, br; float ox; if (GetGridPos(i, bc, ox, br)) { activeCols[bc] = true; activeRows[br] = true; }
         }
-        int curr_c = 0; for (int i = 0; i < 15; i++) if (activeCols[i]) li.colMap[i] = curr_c++;
-        int curr_r = 0; for (int i = 0; i < 5; i++) if (activeRows[i]) li.rowMap[i] = curr_r++;
+        int curr_c = 0; for (int i = 0; i < 35; i++) if (activeCols[i]) li.colMap[i] = curr_c++;
+        int curr_r = 0; for (int i = 0; i < 6; i++) if (activeRows[i]) li.rowMap[i] = curr_r++;
         li.max_r = (curr_r > 0) ? curr_r - 1 : -1;
         float out_maxC = 0;
-        for (int i = '0'; i <= 'Z'; i++) {
+        for (int i = 0; i < 256; i++) {
             if (!state.showExtraKey[i]) continue;
             int bc, br; float ox;
             if (GetGridPos(i, bc, ox, br)) { float c = li.colMap[bc] + ox; if (c > out_maxC) out_maxC = c; }
@@ -52,28 +86,21 @@ private:
     }
 
     static void DrawRoundRect(Gdiplus::Graphics& g, int x, int y, int w, int h, int r, Gdiplus::Brush* fill, Gdiplus::Pen* outline) {
-        Gdiplus::GraphicsPath path;
-        int d = r * 2;
+        Gdiplus::GraphicsPath path; int d = r * 2;
         path.AddArc(x, y, d, d, 180, 90); path.AddArc(x + w - d, y, d, d, 270, 90);
         path.AddArc(x + w - d, y + h - d, d, d, 0, 90); path.AddArc(x, y + h - d, d, d, 90, 90);
         path.CloseFigure();
-        if (fill) g.FillPath(fill, &path);
-        if (outline) g.DrawPath(outline, &path);
+        if (fill) g.FillPath(fill, &path); if (outline) g.DrawPath(outline, &path);
     }
 
     static void DrawButton(Gdiplus::Graphics& g, int x, int y, int w, int h, const wchar_t* text, bool pressed) {
         AppState& state = AppState::Get();
-        int sx = (int)(x * state.uiScale), sy = (int)(y * state.uiScale);
-        int sw = (int)(w * state.uiScale), sh = (int)(h * state.uiScale);
+        int sx = (int)(x * state.uiScale), sy = (int)(y * state.uiScale), sw = (int)(w * state.uiScale), sh = (int)(h * state.uiScale);
         
-        int bAlpha = (state.baseAlpha * 255) / 100;
-        int hAlpha = (state.highlightAlpha * 255) / 100;
-        int oAlpha = (state.outlineAlpha * 255) / 100;
-        
+        int bAlpha = (state.baseAlpha * 255) / 100, hAlpha = (state.highlightAlpha * 255) / 100, oAlpha = (state.outlineAlpha * 255) / 100;
         Gdiplus::Color bgColor = pressed ? Gdiplus::Color(hAlpha, GetRValue(state.activeBg), GetGValue(state.activeBg), GetBValue(state.activeBg)) 
                                          : Gdiplus::Color(bAlpha, GetRValue(state.inactiveBg), GetGValue(state.inactiveBg), GetBValue(state.inactiveBg));
         Gdiplus::SolidBrush brush(bgColor);
-        
         Gdiplus::Pen outlinePen(Gdiplus::Color(oAlpha, GetRValue(state.outlineColor), GetGValue(state.outlineColor), GetBValue(state.outlineColor)), 1.5f);
 
         g.FillRectangle(&brush, sx, sy, sw, sh);
@@ -81,12 +108,10 @@ private:
 
         Gdiplus::Color txtColor = pressed ? Gdiplus::Color(255, GetRValue(state.activeText), GetGValue(state.activeText), GetBValue(state.activeText)) 
                                           : Gdiplus::Color(255, GetRValue(state.inactiveText), GetGValue(state.inactiveText), GetBValue(state.inactiveText));
-        Gdiplus::SolidBrush textBrush(txtColor);
-        Gdiplus::FontFamily fontFamily(L"Segoe UI");
+        Gdiplus::SolidBrush textBrush(txtColor); Gdiplus::FontFamily fontFamily(L"Segoe UI");
         Gdiplus::Font font(&fontFamily, (float)(18 * state.uiScale), Gdiplus::FontStyleBold, Gdiplus::UnitPixel);
         Gdiplus::StringFormat format; format.SetAlignment(Gdiplus::StringAlignmentCenter); format.SetLineAlignment(Gdiplus::StringAlignmentCenter);
-        Gdiplus::RectF rectF((float)sx, (float)sy, (float)sw, (float)sh);
-        g.DrawString(text, -1, &font, rectF, &format, &textBrush);
+        g.DrawString(text, -1, &font, Gdiplus::RectF((float)sx, (float)sy, (float)sw, (float)sh), &format, &textBrush);
     }
 
     static void DrawMouseUI(Gdiplus::Graphics& g, int x, int y) {
@@ -94,20 +119,15 @@ private:
         int sx = (int)(x * state.uiScale), sy = (int)(y * state.uiScale);
         int bw = (int)(35 * state.uiScale), bh = (int)(45 * state.uiScale), gap = (int)(5 * state.uiScale); 
         int bodyH = (int)(55 * state.uiScale), corner = (int)(6 * state.uiScale); 
-
-        int bAlpha = (state.baseAlpha * 255) / 100;
-        int hAlpha = (state.highlightAlpha * 255) / 100;
-        int oAlpha = (state.outlineAlpha * 255) / 100;
+        int bAlpha = (state.baseAlpha * 255) / 100, hAlpha = (state.highlightAlpha * 255) / 100, oAlpha = (state.outlineAlpha * 255) / 100;
 
         auto makeColor = [&](bool active) {
             return active ? Gdiplus::Color(hAlpha, GetRValue(AppState::Get().activeBg), GetGValue(AppState::Get().activeBg), GetBValue(AppState::Get().activeBg))
                           : Gdiplus::Color(bAlpha, GetRValue(AppState::Get().inactiveBg), GetGValue(AppState::Get().inactiveBg), GetBValue(AppState::Get().inactiveBg));
         };
 
-        Gdiplus::SolidBrush lmb(makeColor(state.lmb)), rmb(makeColor(state.rmb)), body(makeColor(false));
-        Gdiplus::SolidBrush m4(makeColor(state.mb4)), m5(makeColor(state.mb5));
+        Gdiplus::SolidBrush lmb(makeColor(state.lmb)), rmb(makeColor(state.rmb)), body(makeColor(false)), m4(makeColor(state.mb4)), m5(makeColor(state.mb5));
         Gdiplus::SolidBrush wheel(state.mmb || state.isScrolling ? makeColor(true) : Gdiplus::Color(bAlpha, GetRValue(state.inactiveText), GetGValue(state.inactiveText), GetBValue(state.inactiveText)));
-        
         Gdiplus::Pen outPen(Gdiplus::Color(oAlpha, GetRValue(state.outlineColor), GetGValue(state.outlineColor), GetBValue(state.outlineColor)), 1.5f);
         Gdiplus::Pen* pOut = (oAlpha > 0) ? &outPen : nullptr;
 
@@ -122,7 +142,6 @@ private:
 
         Gdiplus::SolidBrush textL(Gdiplus::Color(255, GetRValue(state.lmb ? state.activeText : state.inactiveText), GetGValue(state.lmb ? state.activeText : state.inactiveText), GetBValue(state.lmb ? state.activeText : state.inactiveText)));
         Gdiplus::SolidBrush textR(Gdiplus::Color(255, GetRValue(state.rmb ? state.activeText : state.inactiveText), GetGValue(state.rmb ? state.activeText : state.inactiveText), GetBValue(state.rmb ? state.activeText : state.inactiveText)));
-        
         Gdiplus::FontFamily fontFamily(L"Segoe UI"); Gdiplus::Font font(&fontFamily, (float)(16 * state.uiScale), Gdiplus::FontStyleBold, Gdiplus::UnitPixel);
         Gdiplus::StringFormat format; format.SetAlignment(Gdiplus::StringAlignmentCenter); format.SetLineAlignment(Gdiplus::StringAlignmentCenter);
         g.DrawString(L"L", -1, &font, Gdiplus::RectF((float)sx, (float)sy, (float)bw, (float)bh), &format, &textL);
@@ -131,44 +150,26 @@ private:
 
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         AppState& state = AppState::Get();
-        if (uMsg == WM_TIMER && wParam == 1) { state.isScrolling = false; KillTimer(hwnd, 1); SendMessage(hwnd, WM_REDRAW_OVERLAY, 0, 0); return 0; }
+        if (uMsg == WM_TIMER && wParam == 1) { state.isScrolling = false; KillTimer(hwnd, 1); PostMessage(hwnd, WM_REDRAW_OVERLAY, 0, 0); return 0; }
 
         if (uMsg == WM_REDRAW_OVERLAY) {
-            int width = (int)(state.dynamicWidth * state.uiScale);
-            int height = (int)(state.dynamicHeight * state.uiScale);
-
-            HDC hdcScreen = GetDC(NULL);
-            HDC hdcMem = CreateCompatibleDC(hdcScreen);
-            
-            BITMAPINFO bmi = {0};
-            bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-            bmi.bmiHeader.biWidth = width;
-            bmi.bmiHeader.biHeight = -height;
-            bmi.bmiHeader.biPlanes = 1;
-            bmi.bmiHeader.biBitCount = 32;
-            bmi.bmiHeader.biCompression = BI_RGB;
-            void* pBits = NULL;
-            HBITMAP hBitmap = CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0);
-            SelectObject(hdcMem, hBitmap);
+            int width = (int)(state.dynamicWidth * state.uiScale), height = (int)(state.dynamicHeight * state.uiScale);
+            HDC hdcScreen = GetDC(NULL); HDC hdcMem = CreateCompatibleDC(hdcScreen);
+            BITMAPINFO bmi = {0}; bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER); bmi.bmiHeader.biWidth = width; bmi.bmiHeader.biHeight = -height; bmi.bmiHeader.biPlanes = 1; bmi.bmiHeader.biBitCount = 32; bmi.bmiHeader.biCompression = BI_RGB;
+            void* pBits = NULL; HBITMAP hBitmap = CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0); SelectObject(hdcMem, hBitmap);
 
             {
-                Gdiplus::Graphics g(hdcMem);
-                g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
-                g.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
-
-                if (!state.isLocked) {
-                    Gdiplus::SolidBrush bg(Gdiplus::Color(100, 0, 0, 0));
-                    g.FillRectangle(&bg, 0, 0, width, height);
-                }
+                Gdiplus::Graphics g(hdcMem); g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias); g.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+                if (!state.isLocked) { Gdiplus::SolidBrush bg(Gdiplus::Color(100, 0, 0, 0)); g.FillRectangle(&bg, 0, 0, width, height); }
 
                 LayoutInfo li = ComputeLayout();
-                for (int i = '0'; i <= 'Z'; i++) {
+                for (int i = 0; i < 256; i++) {
                     if (!state.showExtraKey[i]) continue;
                     int bc, br; float ox;
                     if (GetGridPos(i, bc, ox, br)) {
-                        int x = (int)((li.colMap[bc] + ox) * 50) + 15;
-                        wchar_t txt[2] = { (wchar_t)i, L'\0' }; 
-                        DrawButton(g, x, (int)(li.rowMap[br] * 50) + 10, 45, 45, txt, state.keys[i]);
+                        int x = (int)((li.colMap[bc] + ox) * 50) + 15, y = (int)(li.rowMap[br] * 50) + 10;
+                        wchar_t txt[4]; 
+                        DrawButton(g, x, y, 45, 45, GetKeyString(i, txt), state.keys[i]);
                     }
                 }
                 if (state.showSpace) DrawButton(g, 15, li.spaceY, 145, 25, L"SPACE", state.keys[VK_SPACE]);
@@ -180,11 +181,9 @@ private:
                 DrawMouseUI(g, li.mouseX, 10);
             }
 
-            POINT ptSrc = {0, 0}; SIZE size = { width, height };
-            BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+            POINT ptSrc = {0, 0}; SIZE size = { width, height }; BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
             RECT rc; GetWindowRect(hwnd, &rc); POINT ptPos = { rc.left, rc.top };
             UpdateLayeredWindow(hwnd, hdcScreen, &ptPos, &size, hdcMem, &ptSrc, 0, &blend, ULW_ALPHA);
-
             DeleteObject(hBitmap); DeleteDC(hdcMem); ReleaseDC(NULL, hdcScreen); return 0;
         }
         else if (uMsg == WM_NCHITTEST && !state.isLocked) return HTCAPTION;
@@ -202,6 +201,6 @@ public:
         AppState& state = AppState::Get(); LayoutInfo li = ComputeLayout();
         state.dynamicHeight = li.lowestY; state.dynamicWidth = li.mouseRightEdge; 
         SetWindowPos(state.hwndOverlay, NULL, 0, 0, (int)(state.dynamicWidth * state.uiScale), (int)(state.dynamicHeight * state.uiScale), SWP_NOMOVE | SWP_NOZORDER);
-        SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
+        PostMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
     }
 };
