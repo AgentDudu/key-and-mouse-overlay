@@ -67,6 +67,21 @@ private:
             EnumChildWindows(hwnd, [](HWND child, LPARAM font) -> BOOL { SendMessageW(child, WM_SETFONT, font, TRUE); return TRUE; }, (LPARAM)state.hFontUI);
             return 0;
         }
+        
+        else if (uMsg == WM_REFRESH_UI) {
+            for (int i = 0; i < 256; i++) {
+                if (i == 'W' || i == 'A' || i == 'S' || i == 'D') continue;
+                HWND cb = GetDlgItem(hwnd, i);
+                if (cb) SendMessage(cb, BM_SETCHECK, state.showExtraKey[i] ? BST_CHECKED : BST_UNCHECKED, 0);
+            }
+            HWND cbSpace = GetDlgItem(hwnd, 1001); if (cbSpace) SendMessage(cbSpace, BM_SETCHECK, state.showSpace ? BST_CHECKED : BST_UNCHECKED, 0);
+            HWND cbShift = GetDlgItem(hwnd, 1002); if (cbShift) SendMessage(cbShift, BM_SETCHECK, state.showShift ? BST_CHECKED : BST_UNCHECKED, 0);
+            HWND cbCtrl = GetDlgItem(hwnd, 1003); if (cbCtrl) SendMessage(cbCtrl, BM_SETCHECK, state.showCtrl ? BST_CHECKED : BST_UNCHECKED, 0);
+            HWND cbMB4 = GetDlgItem(hwnd, 1004); if (cbMB4) SendMessage(cbMB4, BM_SETCHECK, state.showMB4 ? BST_CHECKED : BST_UNCHECKED, 0);
+            HWND cbMB5 = GetDlgItem(hwnd, 1005); if (cbMB5) SendMessage(cbMB5, BM_SETCHECK, state.showMB5 ? BST_CHECKED : BST_UNCHECKED, 0);
+            return 0;
+        }
+
         else if (uMsg == WM_COMMAND) {
             int wmId = LOWORD(wParam);
             if ((wmId >= '0' && wmId <= '9') || (wmId >= 'A' && wmId <= 'Z') || (wmId >= VK_NUMPAD0 && wmId <= VK_DIVIDE) || (wmId >= VK_LEFT && wmId <= VK_DOWN) || wmId == VK_RETURN || wmId == VK_DECIMAL) {

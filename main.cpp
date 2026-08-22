@@ -15,7 +15,7 @@
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     
-    AppState::Get().LoadConfig();
+    AppState::Get().LoadConfig(true);
 
     INITCOMMONCONTROLSEX icex; icex.dwSize = sizeof(INITCOMMONCONTROLSEX); icex.dwICC = ICC_STANDARD_CLASSES; InitCommonControlsEx(&icex);
     AppState::Get().hFontUI = CreateFontW(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
@@ -27,8 +27,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     InputManager::Install(hInstance);
 
-    int savedX = GetPrivateProfileIntW(L"Settings", L"OverlayX", -1, AppState::Get().iniPath);
-    int savedY = GetPrivateProfileIntW(L"Settings", L"OverlayY", -1, AppState::Get().iniPath);
+    int savedX = GetPrivateProfileIntW(L"Settings", L"OverlayX", -1, AppState::Get().profileIniPath);
+    int savedY = GetPrivateProfileIntW(L"Settings", L"OverlayY", -1, AppState::Get().profileIniPath);
     if (savedX != -1 && savedY != -1) {
         SetWindowPos(AppState::Get().hwndOverlay, NULL, savedX, savedY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
     }
@@ -45,7 +45,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     InputManager::Remove();
-    
     AppState::Get().SaveConfig();
 
     Gdiplus::GdiplusShutdown(gdiplusToken);
