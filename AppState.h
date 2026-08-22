@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include <vector>
 
 #define WM_REFRESH_UI (WM_USER + 3)
 
@@ -21,6 +22,9 @@ public:
     bool showExtraKey[256] = { false };
     bool showSpace = true, showShift = true, showCtrl = true;
     bool showMB4 = true, showMB5 = true;
+    
+    bool showCPS = false;
+    std::vector<ULONGLONG> clickTimes; 
     
     bool isLocked = true;
     float uiScale = 1.0f;
@@ -54,9 +58,7 @@ public:
         wchar_t* last = wcsrchr(baseDir, L'\\');
         if (last) *(last + 1) = L'\0';
 
-        wcscpy_s(globalIniPath, MAX_PATH, baseDir);
-        wcscat_s(globalIniPath, MAX_PATH, L"config.ini");
-
+        wcscpy_s(globalIniPath, MAX_PATH, baseDir); wcscat_s(globalIniPath, MAX_PATH, L"config.ini");
         wcscpy_s(profileIniPath, MAX_PATH, baseDir);
         if (currentProfile == 0) wcscat_s(profileIniPath, MAX_PATH, L"profile_default.ini");
         else if (currentProfile == 1) wcscat_s(profileIniPath, MAX_PATH, L"profile_1.ini");
@@ -66,7 +68,6 @@ public:
 
     void SaveConfig() {
         InitPaths();
-        
         wchar_t buf[32]; wsprintfW(buf, L"%d", currentProfile);
         WritePrivateProfileStringW(L"Global", L"LastProfile", buf, globalIniPath);
 
@@ -78,7 +79,9 @@ public:
         WriteInt(L"baseAlpha", baseAlpha); WriteInt(L"highlightAlpha", highlightAlpha); WriteInt(L"outlineAlpha", outlineAlpha);
         WriteInt(L"activeBg", activeBg); WriteInt(L"inactiveBg", inactiveBg); WriteInt(L"activeText", activeText); WriteInt(L"inactiveText", inactiveText); WriteInt(L"outlineColor", outlineColor);
         WriteInt(L"uiScale", (int)(uiScale * 100)); WriteInt(L"currentScheme", currentScheme);
-        WriteInt(L"showSpace", showSpace); WriteInt(L"showShift", showShift); WriteInt(L"showCtrl", showCtrl); WriteInt(L"showMB4", showMB4); WriteInt(L"showMB5", showMB5);
+        WriteInt(L"showSpace", showSpace); WriteInt(L"showShift", showShift); WriteInt(L"showCtrl", showCtrl); 
+        WriteInt(L"showMB4", showMB4); WriteInt(L"showMB5", showMB5); 
+        WriteInt(L"showCPS", showCPS);
         
         wchar_t keyBuf[1024] = {0};
         for (int i = 0; i < 256; i++) {
@@ -105,7 +108,9 @@ public:
         baseAlpha = ReadInt(L"baseAlpha", 80); highlightAlpha = ReadInt(L"highlightAlpha", 100); outlineAlpha = ReadInt(L"outlineAlpha", 0);
         activeBg = ReadInt(L"activeBg", RGB(0, 255, 204)); inactiveBg = ReadInt(L"inactiveBg", RGB(34, 34, 34)); activeText = ReadInt(L"activeText", RGB(0, 0, 0)); inactiveText = ReadInt(L"inactiveText", RGB(255, 255, 255)); outlineColor = ReadInt(L"outlineColor", RGB(255, 255, 255));
         uiScale = ReadInt(L"uiScale", 100) / 100.0f; currentScheme = ReadInt(L"currentScheme", 0);
-        showSpace = ReadInt(L"showSpace", 1); showShift = ReadInt(L"showShift", 1); showCtrl = ReadInt(L"showCtrl", 1); showMB4 = ReadInt(L"showMB4", 1); showMB5 = ReadInt(L"showMB5", 1);
+        showSpace = ReadInt(L"showSpace", 1); showShift = ReadInt(L"showShift", 1); showCtrl = ReadInt(L"showCtrl", 1); 
+        showMB4 = ReadInt(L"showMB4", 1); showMB5 = ReadInt(L"showMB5", 1); 
+        showCPS = ReadInt(L"showCPS", 0);
         
         wchar_t keyBuf[1024] = {0};
         GetPrivateProfileStringW(L"Settings", L"ActiveKeys", L"", keyBuf, 1024, profileIniPath);
@@ -122,5 +127,6 @@ public:
                 token = wcstok_s(NULL, L",", &context);
             }
         }
+        clickTimes.clear();
     }
 };

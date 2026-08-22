@@ -16,12 +16,10 @@ private:
         const char* r1 = "QWERTYUIOP"; for (int i = 0; i < 10; i++) if (key == r1[i]) { base_col = i; offset_x = 0.0f; base_row = 1; return true; }
         const char* r2 = "ASDFGHJKL";  for (int i = 0; i < 9; i++) if (key == r2[i]) { base_col = i; offset_x = 0.0f; base_row = 2; return true; }
         const char* r3 = "ZXCVBNM";    for (int i = 0; i < 7; i++) if (key == r3[i]) { base_col = i; offset_x = 0.5f; base_row = 3; return true; }
-        
         if (key == VK_UP) { base_col = 16; offset_x = 0; base_row = 2; return true; }
         if (key == VK_LEFT) { base_col = 15; offset_x = 0; base_row = 3; return true; }
         if (key == VK_DOWN) { base_col = 16; offset_x = 0; base_row = 3; return true; }
         if (key == VK_RIGHT) { base_col = 17; offset_x = 0; base_row = 3; return true; }
-
         if (key == VK_DIVIDE) { base_col = 19; offset_x = 0; base_row = 0; return true; }
         if (key == VK_MULTIPLY) { base_col = 20; offset_x = 0; base_row = 0; return true; }
         if (key == VK_SUBTRACT) { base_col = 21; offset_x = 0; base_row = 0; return true; }
@@ -96,7 +94,6 @@ private:
     static void DrawButton(Gdiplus::Graphics& g, int x, int y, int w, int h, const wchar_t* text, bool pressed) {
         AppState& state = AppState::Get();
         int sx = (int)(x * state.uiScale), sy = (int)(y * state.uiScale), sw = (int)(w * state.uiScale), sh = (int)(h * state.uiScale);
-        
         int bAlpha = (state.baseAlpha * 255) / 100, hAlpha = (state.highlightAlpha * 255) / 100, oAlpha = (state.outlineAlpha * 255) / 100;
         Gdiplus::Color bgColor = pressed ? Gdiplus::Color(hAlpha, GetRValue(state.activeBg), GetGValue(state.activeBg), GetBValue(state.activeBg)) 
                                          : Gdiplus::Color(bAlpha, GetRValue(state.inactiveBg), GetGValue(state.inactiveBg), GetBValue(state.inactiveBg));
@@ -146,10 +143,37 @@ private:
         Gdiplus::StringFormat format; format.SetAlignment(Gdiplus::StringAlignmentCenter); format.SetLineAlignment(Gdiplus::StringAlignmentCenter);
         g.DrawString(L"L", -1, &font, Gdiplus::RectF((float)sx, (float)sy, (float)bw, (float)bh), &format, &textL);
         g.DrawString(L"R", -1, &font, Gdiplus::RectF((float)(sx + bw + gap), (float)sy, (float)bw, (float)bh), &format, &textR);
+
+        if (state.showCPS) {
+            ULONGLONG now = GetTickCount64();
+            while (!state.clickTimes.empty() && now - state.clickTimes.front() > 1000) {
+                state.clickTimes.erase(state.clickTimes.begin());
+            }
+            int cps = (int)state.clickTimes.size();
+            wchar_t cpsBuf[16]; wsprintfW(cpsBuf, L"%d CPS", cps);
+            
+            Gdiplus::Font cpsFont(&fontFamily, (float)(12 * state.uiScale), Gdiplus::FontStyleBold, Gdiplus::UnitPixel);
+            Gdiplus::SolidBrush cpsBrush(Gdiplus::Color(255, GetRValue(state.inactiveText), GetGValue(state.inactiveText), GetBValue(state.inactiveText)));
+            Gdiplus::RectF bodyRect((float)sx, (float)(sy + bh + (int)(3 * state.uiScale)), (float)(bw * 2 + gap), (float)bodyH);
+            g.DrawString(cpsBuf, -1, &cpsFont, bodyRect, &format, &cpsBrush);
+        }
     }
 
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         AppState& state = AppState::Get();
+        
+        if (uMsg == WM_TIMER && wParam == 2) {
+            ULONGLONG now = GetTickCount64();
+            bool changed = false;
+            while (!state.clickTimes.empty() && now - state.clickTimes.front() > 1000) {
+                state.clickTimes.erase(state.clickTimes.begin());
+                changed = true;
+            }
+            if (changed) PostMessage(hwnd, WM_REDRAW_OVERLAY, 0, 0);
+            if (state.clickTimes.empty()) KillTimer(hwnd, 2); 
+            return 0;
+        }
+
         if (uMsg == WM_TIMER && wParam == 1) { state.isScrolling = false; KillTimer(hwnd, 1); PostMessage(hwnd, WM_REDRAW_OVERLAY, 0, 0); return 0; }
 
         if (uMsg == WM_REDRAW_OVERLAY) {
@@ -168,8 +192,7 @@ private:
                     int bc, br; float ox;
                     if (GetGridPos(i, bc, ox, br)) {
                         int x = (int)((li.colMap[bc] + ox) * 50) + 15, y = (int)(li.rowMap[br] * 50) + 10;
-                        wchar_t txt[4]; 
-                        DrawButton(g, x, y, 45, 45, GetKeyString(i, txt), state.keys[i]);
+                        wchar_t txt[4]; DrawButton(g, x, y, 45, 45, GetKeyString(i, txt), state.keys[i]);
                     }
                 }
                 if (state.showSpace) DrawButton(g, 15, li.spaceY, 145, 25, L"SPACE", state.keys[VK_SPACE]);

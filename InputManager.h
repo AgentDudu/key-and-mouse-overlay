@@ -30,6 +30,13 @@ private:
             MSLLHOOKSTRUCT* pMouse = (MSLLHOOKSTRUCT*)lParam;
             bool triggerRedraw = false;
 
+            if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN) {
+                if (AppState::Get().showCPS) {
+                    AppState::Get().clickTimes.push_back(GetTickCount64());
+                    if (AppState::Get().hwndOverlay) SetTimer(AppState::Get().hwndOverlay, 2, 100, NULL);
+                }
+            }
+
             if (wParam == WM_LBUTTONDOWN) { AppState::Get().lmb = true; triggerRedraw = true; }
             else if (wParam == WM_LBUTTONUP) { AppState::Get().lmb = false; triggerRedraw = true; }
             else if (wParam == WM_RBUTTONDOWN) { AppState::Get().rmb = true; triggerRedraw = true; }

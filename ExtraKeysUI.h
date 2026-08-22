@@ -31,9 +31,13 @@ private:
             y += 20;
 
             struct SpecialKey { const wchar_t* name; int id; bool* statePtr; };
-            SpecialKey specials[] = { { L"Space", 1001, &state.showSpace }, { L"Shift", 1002, &state.showShift }, { L"Ctrl",  1003, &state.showCtrl }, { L"MB 4",  1004, &state.showMB4 }, { L"MB 5",  1005, &state.showMB5 } };
+            SpecialKey specials[] = { 
+                { L"Space", 1001, &state.showSpace }, { L"Shift", 1002, &state.showShift }, 
+                { L"Ctrl",  1003, &state.showCtrl }, { L"MB 4",  1004, &state.showMB4 }, 
+                { L"MB 5",  1005, &state.showMB5 }, { L"CPS",  1006, &state.showCPS } 
+            };
             int specX = 20;
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 6; i++) {
                 HWND cb = CreateWindowW(L"BUTTON", specials[i].name, WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, specX, y, 65, 20, hwnd, (HMENU)(UINT_PTR)specials[i].id, NULL, NULL);
                 if (*(specials[i].statePtr)) SendMessage(cb, BM_SETCHECK, BST_CHECKED, 0);
                 specX += 70;
@@ -79,6 +83,7 @@ private:
             HWND cbCtrl = GetDlgItem(hwnd, 1003); if (cbCtrl) SendMessage(cbCtrl, BM_SETCHECK, state.showCtrl ? BST_CHECKED : BST_UNCHECKED, 0);
             HWND cbMB4 = GetDlgItem(hwnd, 1004); if (cbMB4) SendMessage(cbMB4, BM_SETCHECK, state.showMB4 ? BST_CHECKED : BST_UNCHECKED, 0);
             HWND cbMB5 = GetDlgItem(hwnd, 1005); if (cbMB5) SendMessage(cbMB5, BM_SETCHECK, state.showMB5 ? BST_CHECKED : BST_UNCHECKED, 0);
+            HWND cbCPS = GetDlgItem(hwnd, 1006); if (cbCPS) SendMessage(cbCPS, BM_SETCHECK, state.showCPS ? BST_CHECKED : BST_UNCHECKED, 0);
             return 0;
         }
 
@@ -88,11 +93,12 @@ private:
                 bool isChecked = SendMessage((HWND)lParam, BM_GETCHECK, 0, 0) == BST_CHECKED;
                 state.showExtraKey[wmId] = isChecked; OverlayUI::UpdateSize();
             }
-            else if (wmId >= 1001 && wmId <= 1005) {
+            else if (wmId >= 1001 && wmId <= 1006) {
                 bool isChecked = SendMessage((HWND)lParam, BM_GETCHECK, 0, 0) == BST_CHECKED;
                 if (wmId == 1001) state.showSpace = isChecked; if (wmId == 1002) state.showShift = isChecked;
                 if (wmId == 1003) state.showCtrl = isChecked; if (wmId == 1004) state.showMB4 = isChecked;
-                if (wmId == 1005) state.showMB5 = isChecked; OverlayUI::UpdateSize();
+                if (wmId == 1005) state.showMB5 = isChecked; if (wmId == 1006) state.showCPS = isChecked;
+                OverlayUI::UpdateSize();
             }
             return 0;
         }
