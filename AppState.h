@@ -34,12 +34,12 @@ public:
     
     int baseAlpha = 80;      
     int highlightAlpha = 100; 
-    
     COLORREF outlineColor = RGB(255, 255, 255);
     int outlineAlpha = 0;
-    
     int currentScheme = 0;
 
     HWND hwndOverlay = NULL;
     HWND hwndExtraKeys = NULL;    
+
+    HFONT hFontUI = NULL;
 };

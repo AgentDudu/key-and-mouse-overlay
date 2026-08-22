@@ -13,7 +13,7 @@ private:
         if (sel == 0) { state.activeBg = RGB(0, 255, 204); state.inactiveBg = RGB(34, 34, 34); state.activeText = RGB(0, 0, 0); state.inactiveText = RGB(255, 255, 255); } 
         else if (sel == 1) { state.activeBg = RGB(255, 70, 70); state.inactiveBg = RGB(45, 20, 20); state.activeText = RGB(255, 255, 255); state.inactiveText = RGB(255, 255, 255); } 
         else if (sel == 2) { state.activeBg = RGB(70, 255, 70); state.inactiveBg = RGB(20, 45, 20); state.activeText = RGB(0, 0, 0); state.inactiveText = RGB(255, 255, 255); }
-        state.baseAlpha = 80; state.highlightAlpha = 100; state.outlineAlpha = 0;
+        state.baseAlpha = 80; state.highlightAlpha = 100; state.outlineAlpha = 0; 
     }
 
     static void ChooseCustomColor(HWND hwndParent, int target) {
@@ -62,51 +62,43 @@ private:
             CreateWindowW(L"BUTTON", L"+", WS_CHILD | WS_VISIBLE, 200, 245, 20, 25, hwnd, (HMENU)18, NULL, NULL);
 
             CreateWindowW(L"BUTTON", L"Close App", WS_CHILD | WS_VISIBLE, 20, 285, 200, 30, hwnd, (HMENU)4, NULL, NULL);
+            
+            EnumChildWindows(hwnd, [](HWND child, LPARAM font) -> BOOL {
+                SendMessageW(child, WM_SETFONT, font, TRUE); return TRUE;
+            }, (LPARAM)state.hFontUI);
+
             return 0;
         }
         else if (uMsg == WM_PAINT) {
             PAINTSTRUCT ps; HDC hdc = BeginPaint(hwnd, &ps);
-            
             RECT rcBase = { 110, 175, 135, 200 }; HBRUSH brBase = CreateSolidBrush(state.inactiveBg); FillRect(hdc, &rcBase, brBase); FrameRect(hdc, &rcBase, (HBRUSH)GetStockObject(BLACK_BRUSH)); DeleteObject(brBase);
             RECT rcHigh = { 110, 210, 135, 235 }; HBRUSH brHigh = CreateSolidBrush(state.activeBg); FillRect(hdc, &rcHigh, brHigh); FrameRect(hdc, &rcHigh, (HBRUSH)GetStockObject(BLACK_BRUSH)); DeleteObject(brHigh);
             RECT rcOut  = { 110, 245, 135, 270 }; HBRUSH brOut = CreateSolidBrush(state.outlineColor); FillRect(hdc, &rcOut, brOut); FrameRect(hdc, &rcOut, (HBRUSH)GetStockObject(BLACK_BRUSH)); DeleteObject(brOut);
             
-            SetBkMode(hdc, TRANSPARENT);
+            SetBkMode(hdc, TRANSPARENT); SelectObject(hdc, state.hFontUI); // Ensures text uses modern font
             wchar_t buf[16];
-            wsprintfW(buf, L"%d%%", state.baseAlpha); TextOutW(hdc, 168, 180, buf, lstrlenW(buf));
-            wsprintfW(buf, L"%d%%", state.highlightAlpha); TextOutW(hdc, 168, 215, buf, lstrlenW(buf));
-            wsprintfW(buf, L"%d%%", state.outlineAlpha); TextOutW(hdc, 168, 250, buf, lstrlenW(buf));
+            wsprintfW(buf, L"%d%%", state.baseAlpha); TextOutW(hdc, 168, 178, buf, lstrlenW(buf));
+            wsprintfW(buf, L"%d%%", state.highlightAlpha); TextOutW(hdc, 168, 213, buf, lstrlenW(buf));
+            wsprintfW(buf, L"%d%%", state.outlineAlpha); TextOutW(hdc, 168, 248, buf, lstrlenW(buf));
             EndPaint(hwnd, &ps); return 0;
         }
         else if (uMsg == WM_COMMAND) {
             int wmId = LOWORD(wParam);
-            if (HIWORD(wParam) == CBN_SELCHANGE && wmId == 5) {
-                HWND hCombo = (HWND)lParam; int sel = SendMessageW(hCombo, CB_GETCURSEL, 0, 0);
-                if (sel != 3) { state.currentScheme = sel; ApplyScheme(sel); SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0); InvalidateRect(hwnd, NULL, TRUE); }
-            }
-            if (wmId == 1) { 
-                state.isLocked = !state.isLocked; LONG exStyle = GetWindowLong(state.hwndOverlay, GWL_EXSTYLE);
-                if (state.isLocked) SetWindowLong(state.hwndOverlay, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT); 
-                else SetWindowLong(state.hwndOverlay, GWL_EXSTYLE, exStyle & ~WS_EX_TRANSPARENT); 
-                SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
-            }
+            if (HIWORD(wParam) == CBN_SELCHANGE && wmId == 5) { HWND hCombo = (HWND)lParam; int sel = SendMessageW(hCombo, CB_GETCURSEL, 0, 0); if (sel != 3) { state.currentScheme = sel; ApplyScheme(sel); SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0); InvalidateRect(hwnd, NULL, TRUE); } }
+            if (wmId == 1) { state.isLocked = !state.isLocked; LONG exStyle = GetWindowLong(state.hwndOverlay, GWL_EXSTYLE); if (state.isLocked) SetWindowLong(state.hwndOverlay, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT); else SetWindowLong(state.hwndOverlay, GWL_EXSTYLE, exStyle & ~WS_EX_TRANSPARENT); SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0); }
             else if (wmId == 2) { if (state.uiScale < 3.0f) state.uiScale += 0.1f; OverlayUI::UpdateSize(); }
             else if (wmId == 3) { if (state.uiScale > 0.5f) state.uiScale -= 0.1f; OverlayUI::UpdateSize(); }
             else if (wmId == 4) { PostQuitMessage(0); }
-            
             else if (wmId == 6) { ChooseCustomColor(hwnd, 0); }
             else if (wmId == 7) { ChooseCustomColor(hwnd, 1); }
             else if (wmId == 16) { ChooseCustomColor(hwnd, 2); }
-            
             else if (wmId == 8) { ExtraKeysUI::Show(); }
-            
             else if (wmId == 11) { state.baseAlpha = (state.baseAlpha > 10) ? state.baseAlpha - 10 : 0; InvalidateRect(hwnd, NULL, TRUE); SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0); }
             else if (wmId == 12) { state.baseAlpha = (state.baseAlpha < 90) ? state.baseAlpha + 10 : 100; InvalidateRect(hwnd, NULL, TRUE); SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0); }
             else if (wmId == 13) { state.highlightAlpha = (state.highlightAlpha > 10) ? state.highlightAlpha - 10 : 0; InvalidateRect(hwnd, NULL, TRUE); SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0); }
             else if (wmId == 14) { state.highlightAlpha = (state.highlightAlpha < 90) ? state.highlightAlpha + 10 : 100; InvalidateRect(hwnd, NULL, TRUE); SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0); }
             else if (wmId == 17) { state.outlineAlpha = (state.outlineAlpha > 10) ? state.outlineAlpha - 10 : 0; InvalidateRect(hwnd, NULL, TRUE); SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0); }
             else if (wmId == 18) { state.outlineAlpha = (state.outlineAlpha < 90) ? state.outlineAlpha + 10 : 100; InvalidateRect(hwnd, NULL, TRUE); SendMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0); }
-            
             return 0;
         }
         else if (uMsg == WM_DESTROY) { PostQuitMessage(0); return 0; }
