@@ -33,7 +33,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         SetWindowPos(AppState::Get().hwndOverlay, NULL, savedX, savedY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
     }
     
-    OverlayUI::UpdateSize();
+    OverlayUI::UpdateSize(); 
 
     ShowWindow(hwndControl, nCmdShow);
     ShowWindow(AppState::Get().hwndOverlay, SW_SHOWNA);
@@ -44,9 +44,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         DispatchMessage(&msg);
     }
 
+    InputManager::Remove();
+    
     AppState::Get().SaveConfig();
 
-    InputManager::Remove();
     Gdiplus::GdiplusShutdown(gdiplusToken);
     if (AppState::Get().hFontUI) DeleteObject(AppState::Get().hFontUI);
     

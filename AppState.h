@@ -64,10 +64,14 @@ public:
         WriteInt(L"uiScale", (int)(uiScale * 100)); WriteInt(L"currentScheme", currentScheme);
         WriteInt(L"showSpace", showSpace); WriteInt(L"showShift", showShift); WriteInt(L"showCtrl", showCtrl); WriteInt(L"showMB4", showMB4); WriteInt(L"showMB5", showMB5);
         
+        wchar_t keyBuf[1024] = {0};
         for (int i = 0; i < 256; i++) {
-            wchar_t kName[16]; wsprintfW(kName, L"Key_%d", i);
-            WriteInt(kName, showExtraKey[i]);
+            if (showExtraKey[i]) {
+                wchar_t temp[16]; wsprintfW(temp, L"%d,", i);
+                wcscat_s(keyBuf, 1024, temp);
+            }
         }
+        WritePrivateProfileStringW(L"Settings", L"ActiveKeys", keyBuf, iniPath);
         
         RECT rc; GetWindowRect(hwndOverlay, &rc);
         WriteInt(L"OverlayX", rc.left); WriteInt(L"OverlayY", rc.top);
@@ -84,9 +88,23 @@ public:
         uiScale = ReadInt(L"uiScale", 100) / 100.0f; currentScheme = ReadInt(L"currentScheme", 0);
         showSpace = ReadInt(L"showSpace", 1); showShift = ReadInt(L"showShift", 1); showCtrl = ReadInt(L"showCtrl", 1); showMB4 = ReadInt(L"showMB4", 1); showMB5 = ReadInt(L"showMB5", 1);
         
-        for (int i = 0; i < 256; i++) {
-            wchar_t kName[16]; wsprintfW(kName, L"Key_%d", i);
-            showExtraKey[i] = ReadInt(kName, showExtraKey[i]);
+        wchar_t keyBuf[1024] = {0};
+        GetPrivateProfileStringW(L"Settings", L"ActiveKeys", L"", keyBuf, 1024, iniPath);
+        
+        if (wcslen(keyBuf) > 0) {
+            for (int i = 0; i < 256; i++) showExtraKey[i] = false;
+            wchar_t* context = NULL;
+            wchar_t* token = wcstok_s(keyBuf, L",", &context);
+            while (token) {
+                int k = _wtoi(token);
+                if (k >= 0 && k < 256) showExtraKey[k] = true;
+                token = wcstok_s(NULL, L",", &context);
+            }
+        } else {
+            for (int i = 0; i < 256; i++) {
+                wchar_t kName[16]; wsprintfW(kName, L"Key_%d", i);
+                showExtraKey[i] = ReadInt(kName, showExtraKey[i]);
+            }
         }
     }
 };
