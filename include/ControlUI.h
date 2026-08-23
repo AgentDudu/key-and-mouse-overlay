@@ -10,9 +10,24 @@
 #include "resource.h"
 
 #define WM_TRAYICON (WM_USER + 2)
+#define HOTKEY_TOGGLE_LOCK 9999
 
 class ControlUI {
 private:
+    static void ToggleLock() {
+        AppState& state = AppState::Get();
+        state.isLocked = !state.isLocked; 
+        LONG exStyle = GetWindowLong(state.hwndOverlay, GWL_EXSTYLE); 
+        
+        if (state.isLocked) {
+            SetWindowLong(state.hwndOverlay, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT); 
+        } else {
+            SetWindowLong(state.hwndOverlay, GWL_EXSTYLE, exStyle & ~WS_EX_TRANSPARENT); 
+        }
+        
+        state.needsRedraw = true;
+    }
+
     static void ChooseCustomColor(HWND hwndParent, int target) {
         AppState& state = AppState::Get(); CHOOSECOLORW cc = {0}; static COLORREF acrCustClr[16]; 
         cc.lStructSize = sizeof(cc); cc.hwndOwner = hwndParent; cc.lpCustColors = (LPDWORD)acrCustClr;
@@ -22,17 +37,20 @@ private:
             else if (target == 0) { state.inactiveBg = cc.rgbResult; state.inactiveText = ColorMath::GetContrastTextColor(state.inactiveBg); } 
             else if (target == 2) { state.outlineColor = cc.rgbResult; }
             if (target != 2) { state.currentScheme = 3; SendMessageW(GetDlgItem(hwndParent, 5), CB_SETCURSEL, 3, 0); }
-            state.needsRedraw = true;
+            state.needsRedraw = true; 
             InvalidateRect(hwndParent, NULL, TRUE); 
         }
     }
 
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         AppState& state = AppState::Get();
+        
         if (uMsg == WM_CREATE) {
             NOTIFYICONDATAW nid = {}; nid.cbSize = sizeof(NOTIFYICONDATAW); nid.hWnd = hwnd; nid.uID = 1; nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
             nid.uCallbackMessage = WM_TRAYICON; nid.hIcon = LoadIcon((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDI_APP_ICON));
             lstrcpyW(nid.szTip, L"Overlay Settings"); Shell_NotifyIconW(NIM_ADD, &nid);
+
+            RegisterHotKey(hwnd, HOTKEY_TOGGLE_LOCK, MOD_CONTROL | MOD_SHIFT | 0x4000, 0x4F);
 
             CreateWindowW(L"STATIC", L"Profile:", WS_CHILD | WS_VISIBLE, 20, 18, 50, 20, hwnd, NULL, NULL, NULL);
             HWND hProf = CreateWindowW(L"COMBOBOX", NULL, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE, 70, 15, 150, 100, hwnd, (HMENU)9, NULL, NULL);
@@ -40,7 +58,8 @@ private:
             SendMessageW(hProf, CB_ADDSTRING, 0, (LPARAM)L"Profile 2 (MOBA)"); SendMessageW(hProf, CB_ADDSTRING, 0, (LPARAM)L"Profile 3 (MMO)");
             SendMessageW(hProf, CB_SETCURSEL, state.currentProfile, 0);
 
-            CreateWindowW(L"BUTTON", L"Unlock / Move Overlay", WS_CHILD | WS_VISIBLE, 20, 50, 200, 30, hwnd, (HMENU)1, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"Unlock / Move (Ctrl+Shift+O)", WS_CHILD | WS_VISIBLE, 20, 50, 200, 30, hwnd, (HMENU)1, NULL, NULL);
+            
             CreateWindowW(L"BUTTON", L"Size +", WS_CHILD | WS_VISIBLE, 20, 85, 95, 30, hwnd, (HMENU)2, NULL, NULL);
             CreateWindowW(L"BUTTON", L"Size -", WS_CHILD | WS_VISIBLE, 125, 85, 95, 30, hwnd, (HMENU)3, NULL, NULL);
             CreateWindowW(L"BUTTON", L"Add Extra Keys...", WS_CHILD | WS_VISIBLE, 20, 120, 200, 30, hwnd, (HMENU)8, NULL, NULL);
@@ -65,6 +84,14 @@ private:
             EnumChildWindows(hwnd, [](HWND child, LPARAM font) -> BOOL { SendMessageW(child, WM_SETFONT, font, TRUE); return TRUE; }, (LPARAM)state.hFontUI);
             return 0;
         }
+        
+        else if (uMsg == WM_HOTKEY) {
+            if (wParam == HOTKEY_TOGGLE_LOCK) {
+                ToggleLock();
+            }
+            return 0;
+        }
+        
         else if (uMsg == WM_REFRESH_UI) { SendMessageW(GetDlgItem(hwnd, 5), CB_SETCURSEL, state.currentScheme, 0); InvalidateRect(hwnd, NULL, TRUE); return 0; }
         else if (uMsg == WM_TRAYICON) {
             if (lParam == WM_LBUTTONUP) { ShowWindow(hwnd, IsWindowVisible(hwnd) ? SW_HIDE : SW_RESTORE); SetForegroundWindow(hwnd); }
@@ -73,11 +100,10 @@ private:
                 AppendMenuW(hMenu, MF_STRING, 101, L"Settings"); AppendMenuW(hMenu, MF_STRING, 102, state.isLocked ? L"Unlock Overlay" : L"Lock Overlay");
                 AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL); AppendMenuW(hMenu, MF_STRING, 103, L"Exit Application");
                 SetForegroundWindow(hwnd); int cmd = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, pt.x, pt.y, 0, hwnd, NULL); DestroyMenu(hMenu);
-                if (cmd == 101) ShowWindow(hwnd, SW_RESTORE); if (cmd == 102) SendMessage(hwnd, WM_COMMAND, 1, 0); if (cmd == 103) PostQuitMessage(0); 
+                if (cmd == 101) ShowWindow(hwnd, SW_RESTORE); if (cmd == 102) ToggleLock(); if (cmd == 103) PostQuitMessage(0); 
             }
             return 0;
         }
-
         else if (uMsg == WM_PAINT) {
             ScopedPaint hdc(hwnd); 
             
@@ -110,7 +136,7 @@ private:
                 state.baseAlpha = 80; state.highlightAlpha = 100; state.outlineAlpha = 0; 
                 state.needsRedraw = true; InvalidateRect(hwnd, NULL, TRUE); } 
             }
-            if (wmId == 1) { state.isLocked = !state.isLocked; LONG exStyle = GetWindowLong(state.hwndOverlay, GWL_EXSTYLE); if (state.isLocked) SetWindowLong(state.hwndOverlay, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT); else SetWindowLong(state.hwndOverlay, GWL_EXSTYLE, exStyle & ~WS_EX_TRANSPARENT); state.needsRedraw = true; }
+            if (wmId == 1) { ToggleLock(); }
             else if (wmId == 2) { if (state.uiScale < 3.0f) state.uiScale += 0.1f; OverlayUI::UpdateSize(); }
             else if (wmId == 3) { if (state.uiScale > 0.5f) state.uiScale -= 0.1f; OverlayUI::UpdateSize(); }
             else if (wmId == 4) { ShowWindow(hwnd, SW_HIDE); }
@@ -125,7 +151,12 @@ private:
             return 0;
         }
         else if (uMsg == WM_CLOSE) { ShowWindow(hwnd, SW_HIDE); return 0; }
-        else if (uMsg == WM_DESTROY) { NOTIFYICONDATAW nid = {}; nid.cbSize = sizeof(NOTIFYICONDATAW); nid.hWnd = hwnd; nid.uID = 1; Shell_NotifyIconW(NIM_DELETE, &nid); PostQuitMessage(0); return 0; }
+        else if (uMsg == WM_DESTROY) { 
+            UnregisterHotKey(hwnd, HOTKEY_TOGGLE_LOCK);
+            
+            NOTIFYICONDATAW nid = {}; nid.cbSize = sizeof(NOTIFYICONDATAW); nid.hWnd = hwnd; nid.uID = 1; Shell_NotifyIconW(NIM_DELETE, &nid); 
+            PostQuitMessage(0); return 0; 
+        }
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
