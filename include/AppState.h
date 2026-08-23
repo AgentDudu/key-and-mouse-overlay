@@ -1,7 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <vector> 
-#include <atomic>
+#include <atomic> 
 
 #define WM_REFRESH_UI (WM_USER + 3)
 
@@ -22,11 +22,19 @@ public:
     bool keys[256] = { false };
     bool lmb = false, rmb = false, mmb = false; 
     bool isScrolling = false, mb4 = false, mb5 = false; 
+    
+    float keyAnim[256] = { 0.0f };
+    float mouseAnim[5] = { 0.0f }; 
+    float shiftAnim = 0.0f;
+    float ctrlAnim = 0.0f;
+
     bool showExtraKey[256] = { false };
     bool showSpace = true, showShift = true, showCtrl = true;
     bool showMB4 = true, showMB5 = true;
     
     bool showCPS = false;
+    bool enableFadeAnim = true;
+    
     std::vector<ULONGLONG> clickTimes; 
     
     bool isLocked = true;
@@ -84,6 +92,7 @@ public:
         WriteInt(L"uiScale", (int)(uiScale * 100)); WriteInt(L"currentScheme", currentScheme);
         WriteInt(L"showSpace", showSpace); WriteInt(L"showShift", showShift); WriteInt(L"showCtrl", showCtrl); 
         WriteInt(L"showMB4", showMB4); WriteInt(L"showMB5", showMB5); WriteInt(L"showCPS", showCPS); 
+        WriteInt(L"enableFadeAnim", enableFadeAnim);
         
         wchar_t keyBuf[1024] = {0};
         for (int i = 0; i < 256; i++) {
@@ -112,6 +121,7 @@ public:
         uiScale = ReadInt(L"uiScale", 100) / 100.0f; currentScheme = ReadInt(L"currentScheme", 0);
         showSpace = ReadInt(L"showSpace", 1); showShift = ReadInt(L"showShift", 1); showCtrl = ReadInt(L"showCtrl", 1); 
         showMB4 = ReadInt(L"showMB4", 1); showMB5 = ReadInt(L"showMB5", 1); showCPS = ReadInt(L"showCPS", 0); 
+        enableFadeAnim = ReadInt(L"enableFadeAnim", 1);
         
         wchar_t keyBuf[1024] = {0};
         GetPrivateProfileStringW(L"Settings", L"ActiveKeys", L"", keyBuf, 1024, profileIniPath);
@@ -129,6 +139,6 @@ public:
             }
         }
         clickTimes.clear(); 
-        needsRedraw = true;
+        needsRedraw = true; 
     }
 };
