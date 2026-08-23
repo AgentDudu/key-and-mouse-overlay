@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
-#include <vector>
+#include <vector> 
+#include <atomic>
 
 #define WM_REFRESH_UI (WM_USER + 3)
 
@@ -15,6 +16,8 @@ public:
         showExtraKey['W'] = true; showExtraKey['A'] = true;
         showExtraKey['S'] = true; showExtraKey['D'] = true;
     }
+
+    std::atomic<bool> needsRedraw{true};
 
     bool keys[256] = { false };
     bool lmb = false, rmb = false, mmb = false; 
@@ -80,8 +83,7 @@ public:
         WriteInt(L"activeBg", activeBg); WriteInt(L"inactiveBg", inactiveBg); WriteInt(L"activeText", activeText); WriteInt(L"inactiveText", inactiveText); WriteInt(L"outlineColor", outlineColor);
         WriteInt(L"uiScale", (int)(uiScale * 100)); WriteInt(L"currentScheme", currentScheme);
         WriteInt(L"showSpace", showSpace); WriteInt(L"showShift", showShift); WriteInt(L"showCtrl", showCtrl); 
-        WriteInt(L"showMB4", showMB4); WriteInt(L"showMB5", showMB5); 
-        WriteInt(L"showCPS", showCPS);
+        WriteInt(L"showMB4", showMB4); WriteInt(L"showMB5", showMB5); WriteInt(L"showCPS", showCPS); 
         
         wchar_t keyBuf[1024] = {0};
         for (int i = 0; i < 256; i++) {
@@ -109,8 +111,7 @@ public:
         activeBg = ReadInt(L"activeBg", RGB(0, 255, 204)); inactiveBg = ReadInt(L"inactiveBg", RGB(34, 34, 34)); activeText = ReadInt(L"activeText", RGB(0, 0, 0)); inactiveText = ReadInt(L"inactiveText", RGB(255, 255, 255)); outlineColor = ReadInt(L"outlineColor", RGB(255, 255, 255));
         uiScale = ReadInt(L"uiScale", 100) / 100.0f; currentScheme = ReadInt(L"currentScheme", 0);
         showSpace = ReadInt(L"showSpace", 1); showShift = ReadInt(L"showShift", 1); showCtrl = ReadInt(L"showCtrl", 1); 
-        showMB4 = ReadInt(L"showMB4", 1); showMB5 = ReadInt(L"showMB5", 1); 
-        showCPS = ReadInt(L"showCPS", 0);
+        showMB4 = ReadInt(L"showMB4", 1); showMB5 = ReadInt(L"showMB5", 1); showCPS = ReadInt(L"showCPS", 0); 
         
         wchar_t keyBuf[1024] = {0};
         GetPrivateProfileStringW(L"Settings", L"ActiveKeys", L"", keyBuf, 1024, profileIniPath);
@@ -127,6 +128,7 @@ public:
                 token = wcstok_s(NULL, L",", &context);
             }
         }
-        clickTimes.clear();
+        clickTimes.clear(); 
+        needsRedraw = true;
     }
 };

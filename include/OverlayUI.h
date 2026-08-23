@@ -3,7 +3,7 @@
 #include <gdiplus.h>
 #include "AppState.h"
 #include "Win32Utils.h" 
-#include "CoreLogic.h"
+#include "CoreLogic.h"  
 #include "resource.h" 
 
 #define WM_REDRAW_OVERLAY (WM_USER + 1)
@@ -33,7 +33,6 @@ private:
     static void DrawButton(Gdiplus::Graphics& g, int x, int y, int w, int h, const wchar_t* text, bool pressed) {
         AppState& state = AppState::Get();
         int sx = (int)(x * state.uiScale), sy = (int)(y * state.uiScale), sw = (int)(w * state.uiScale), sh = (int)(h * state.uiScale);
-        
         int bAlpha = (state.baseAlpha * 255) / 100, hAlpha = (state.highlightAlpha * 255) / 100, oAlpha = (state.outlineAlpha * 255) / 100;
         Gdiplus::Color bgColor = pressed ? Gdiplus::Color(hAlpha, GetRValue(state.activeBg), GetGValue(state.activeBg), GetBValue(state.activeBg)) 
                                          : Gdiplus::Color(bAlpha, GetRValue(state.inactiveBg), GetGValue(state.inactiveBg), GetBValue(state.inactiveBg));
@@ -98,15 +97,36 @@ private:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         AppState& state = AppState::Get();
         
-        if (uMsg == WM_TIMER && wParam == 2) {
-            ULONGLONG now = GetTickCount64(); bool changed = false;
-            while (!state.clickTimes.empty() && now - state.clickTimes.front() > 1000) { state.clickTimes.erase(state.clickTimes.begin()); changed = true; }
-            if (changed) PostMessage(hwnd, WM_REDRAW_OVERLAY, 0, 0);
-            if (state.clickTimes.empty()) KillTimer(hwnd, 2); 
+        if (uMsg == WM_CREATE) {
+            SetTimer(hwnd, 3, 16, NULL);
             return 0;
         }
-
-        if (uMsg == WM_TIMER && wParam == 1) { state.isScrolling = false; KillTimer(hwnd, 1); PostMessage(hwnd, WM_REDRAW_OVERLAY, 0, 0); return 0; }
+        
+        if (uMsg == WM_TIMER) {
+            if (wParam == 3) {
+                if (state.needsRedraw) {
+                    state.needsRedraw = false;
+                    PostMessage(hwnd, WM_REDRAW_OVERLAY, 0, 0);
+                }
+                return 0;
+            }
+            else if (wParam == 2) {
+                ULONGLONG now = GetTickCount64(); bool changed = false;
+                while (!state.clickTimes.empty() && now - state.clickTimes.front() > 1000) { 
+                    state.clickTimes.erase(state.clickTimes.begin()); 
+                    changed = true; 
+                }
+                if (changed) state.needsRedraw = true;
+                if (state.clickTimes.empty()) KillTimer(hwnd, 2); 
+                return 0;
+            }
+            else if (wParam == 1) {
+                state.isScrolling = false; 
+                KillTimer(hwnd, 1); 
+                state.needsRedraw = true;
+                return 0; 
+            }
+        }
 
         if (uMsg == WM_REDRAW_OVERLAY) {
             int width = (int)(state.dynamicWidth * state.uiScale), height = (int)(state.dynamicHeight * state.uiScale);
@@ -157,11 +177,9 @@ public:
     }
     static void UpdateSize() {
         AppState& state = AppState::Get(); 
-        
         LayoutInfo li = LayoutEngine::ComputeLayout(state.showExtraKey, state.showSpace, state.showShift, state.showCtrl);
-        
         state.dynamicHeight = li.lowestY; state.dynamicWidth = li.mouseRightEdge; 
         SetWindowPos(state.hwndOverlay, NULL, 0, 0, (int)(state.dynamicWidth * state.uiScale), (int)(state.dynamicHeight * state.uiScale), SWP_NOMOVE | SWP_NOZORDER);
-        PostMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
+        state.needsRedraw = true;
     }
 };

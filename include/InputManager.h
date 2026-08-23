@@ -2,8 +2,6 @@
 #include <windows.h>
 #include "AppState.h"
 
-#define WM_REDRAW_OVERLAY (WM_USER + 1)
-
 class InputManager {
 private:
     static InputManager& Get() { static InputManager instance; return instance; }
@@ -15,11 +13,11 @@ private:
             KBDLLHOOKSTRUCT* pKeyBoard = (KBDLLHOOKSTRUCT*)lParam;
             if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
                 if (pKeyBoard->vkCode < 256) AppState::Get().keys[pKeyBoard->vkCode] = true;
-                if (AppState::Get().hwndOverlay) PostMessage(AppState::Get().hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
+                AppState::Get().needsRedraw = true;
             }
             else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
                 if (pKeyBoard->vkCode < 256) AppState::Get().keys[pKeyBoard->vkCode] = false;
-                if (AppState::Get().hwndOverlay) PostMessage(AppState::Get().hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
+                AppState::Get().needsRedraw = true;
             }
         }
         return CallNextHookEx(Get().hKeyboardHook, nCode, wParam, lParam);
@@ -51,7 +49,7 @@ private:
                 triggerRedraw = true;
             }
             
-            if (triggerRedraw && AppState::Get().hwndOverlay) PostMessage(AppState::Get().hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
+            if (triggerRedraw) AppState::Get().needsRedraw = true;
         }
         return CallNextHookEx(Get().hMouseHook, nCode, wParam, lParam);
     }
