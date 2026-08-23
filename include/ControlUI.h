@@ -3,7 +3,8 @@
 #include <commdlg.h>
 #include <shellapi.h>
 #include "AppState.h"
-#include "Win32Utils.h"
+#include "Win32Utils.h" 
+#include "CoreLogic.h"
 #include "OverlayUI.h"
 #include "ExtraKeysUI.h" 
 #include "resource.h"
@@ -17,9 +18,19 @@ private:
         cc.lStructSize = sizeof(cc); cc.hwndOwner = hwndParent; cc.lpCustColors = (LPDWORD)acrCustClr;
         cc.rgbResult = (target == 1) ? state.activeBg : (target == 2) ? state.outlineColor : state.inactiveBg; cc.Flags = CC_FULLOPEN | CC_RGBINIT;
         if (ChooseColorW(&cc) == TRUE) {
-            if (target == 1) { state.activeBg = cc.rgbResult; int r = GetRValue(state.activeBg), g = GetGValue(state.activeBg), b = GetBValue(state.activeBg); state.activeText = ((r * 0.299 + g * 0.587 + b * 0.114) > 128) ? RGB(0, 0, 0) : RGB(255, 255, 255); } 
-            else if (target == 0) { state.inactiveBg = cc.rgbResult; int r = GetRValue(state.inactiveBg), g = GetGValue(state.inactiveBg), b = GetBValue(state.inactiveBg); state.inactiveText = ((r * 0.299 + g * 0.587 + b * 0.114) > 128) ? RGB(0, 0, 0) : RGB(255, 255, 255); } 
-            else if (target == 2) { state.outlineColor = cc.rgbResult; }
+            
+            if (target == 1) { 
+                state.activeBg = cc.rgbResult; 
+                state.activeText = ColorMath::GetContrastTextColor(state.activeBg); 
+            } 
+            else if (target == 0) { 
+                state.inactiveBg = cc.rgbResult; 
+                state.inactiveText = ColorMath::GetContrastTextColor(state.inactiveBg); 
+            } 
+            else if (target == 2) { 
+                state.outlineColor = cc.rgbResult; 
+            }
+            
             if (target != 2) { state.currentScheme = 3; SendMessageW(GetDlgItem(hwndParent, 5), CB_SETCURSEL, 3, 0); }
             PostMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0); InvalidateRect(hwndParent, NULL, TRUE); 
         }
@@ -91,7 +102,7 @@ private:
             wsprintfW(buf, L"%d%%", state.highlightAlpha); TextOutW(hdc, 168, 248, buf, lstrlenW(buf));
             wsprintfW(buf, L"%d%%", state.outlineAlpha); TextOutW(hdc, 168, 283, buf, lstrlenW(buf));
             
-            return 0;
+            return 0; 
         }
         else if (uMsg == WM_COMMAND) {
             int wmId = LOWORD(wParam);

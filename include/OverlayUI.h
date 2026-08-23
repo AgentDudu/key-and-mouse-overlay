@@ -2,44 +2,14 @@
 #include <windows.h>
 #include <gdiplus.h>
 #include "AppState.h"
-#include "Win32Utils.h"
+#include "Win32Utils.h" 
+#include "CoreLogic.h"
 #include "resource.h" 
 
 #define WM_REDRAW_OVERLAY (WM_USER + 1)
 
 class OverlayUI {
 private:
-    struct LayoutInfo { int colMap[35], rowMap[6], max_r, mouseX, spaceY, shiftCtrlY, lowestY, mouseRightEdge; };
-
-    static bool GetGridPos(int key, int& base_col, float& offset_x, int& base_row) {
-        if (key >= '1' && key <= '9') { base_col = key - '1'; offset_x = 0.0f; base_row = 0; return true; }
-        if (key == '0') { base_col = 9; offset_x = 0.0f; base_row = 0; return true; }
-        const char* r1 = "QWERTYUIOP"; for (int i = 0; i < 10; i++) if (key == r1[i]) { base_col = i; offset_x = 0.0f; base_row = 1; return true; }
-        const char* r2 = "ASDFGHJKL";  for (int i = 0; i < 9; i++) if (key == r2[i]) { base_col = i; offset_x = 0.0f; base_row = 2; return true; }
-        const char* r3 = "ZXCVBNM";    for (int i = 0; i < 7; i++) if (key == r3[i]) { base_col = i; offset_x = 0.5f; base_row = 3; return true; }
-        if (key == VK_UP) { base_col = 16; offset_x = 0; base_row = 2; return true; }
-        if (key == VK_LEFT) { base_col = 15; offset_x = 0; base_row = 3; return true; }
-        if (key == VK_DOWN) { base_col = 16; offset_x = 0; base_row = 3; return true; }
-        if (key == VK_RIGHT) { base_col = 17; offset_x = 0; base_row = 3; return true; }
-        if (key == VK_DIVIDE) { base_col = 19; offset_x = 0; base_row = 0; return true; }
-        if (key == VK_MULTIPLY) { base_col = 20; offset_x = 0; base_row = 0; return true; }
-        if (key == VK_SUBTRACT) { base_col = 21; offset_x = 0; base_row = 0; return true; }
-        if (key == VK_ADD) { base_col = 22; offset_x = 0; base_row = 0; return true; }
-        if (key == VK_NUMPAD7) { base_col = 19; offset_x = 0; base_row = 1; return true; }
-        if (key == VK_NUMPAD8) { base_col = 20; offset_x = 0; base_row = 1; return true; }
-        if (key == VK_NUMPAD9) { base_col = 21; offset_x = 0; base_row = 1; return true; }
-        if (key == VK_NUMPAD4) { base_col = 19; offset_x = 0; base_row = 2; return true; }
-        if (key == VK_NUMPAD5) { base_col = 20; offset_x = 0; base_row = 2; return true; }
-        if (key == VK_NUMPAD6) { base_col = 21; offset_x = 0; base_row = 2; return true; }
-        if (key == VK_NUMPAD1) { base_col = 19; offset_x = 0; base_row = 3; return true; }
-        if (key == VK_NUMPAD2) { base_col = 20; offset_x = 0; base_row = 3; return true; }
-        if (key == VK_NUMPAD3) { base_col = 21; offset_x = 0; base_row = 3; return true; }
-        if (key == VK_RETURN) { base_col = 22; offset_x = 0; base_row = 2; return true; }
-        if (key == VK_NUMPAD0) { base_col = 19; offset_x = 0; base_row = 4; return true; }
-        if (key == VK_DECIMAL) { base_col = 21; offset_x = 0; base_row = 4; return true; }
-        return false;
-    }
-
     static const wchar_t* GetKeyString(int key, wchar_t* buf) {
         if ((key >= '0' && key <= '9') || (key >= 'A' && key <= 'Z')) { buf[0] = (wchar_t)key; buf[1] = L'\0'; return buf; }
         switch(key) {
@@ -50,38 +20,6 @@ private:
             case VK_SUBTRACT: return L"-"; case VK_ADD: return L"+"; case VK_DECIMAL: return L"."; case VK_RETURN: return L"EN";
         }
         return L"?";
-    }
-
-    static LayoutInfo ComputeLayout() {
-        AppState& state = AppState::Get(); LayoutInfo li = {0};
-        bool activeCols[35] = { false }, activeRows[6] = { false };
-        for (int i = 0; i < 256; i++) {
-            if (!state.showExtraKey[i]) continue;
-            int bc, br; float ox; if (GetGridPos(i, bc, ox, br)) { activeCols[bc] = true; activeRows[br] = true; }
-        }
-        int curr_c = 0; for (int i = 0; i < 35; i++) if (activeCols[i]) li.colMap[i] = curr_c++;
-        int curr_r = 0; for (int i = 0; i < 6; i++) if (activeRows[i]) li.rowMap[i] = curr_r++;
-        li.max_r = (curr_r > 0) ? curr_r - 1 : -1;
-        float out_maxC = 0;
-        for (int i = 0; i < 256; i++) {
-            if (!state.showExtraKey[i]) continue;
-            int bc, br; float ox;
-            if (GetGridPos(i, bc, ox, br)) { float c = li.colMap[bc] + ox; if (c > out_maxC) out_maxC = c; }
-        }
-        int max_kbd_x = 15;
-        if (li.max_r > -1) max_kbd_x = (int)((out_maxC * 50) + 15 + 45);
-        int curY = (li.max_r > -1) ? (li.max_r * 50) + 60 : 10;
-        
-        if (state.showSpace) { li.spaceY = curY; if (15 + 145 > max_kbd_x) max_kbd_x = 15 + 145; curY += 30; } else li.spaceY = -1;
-        if (state.showShift || state.showCtrl) {
-            li.shiftCtrlY = curY; int w = 15;
-            if (state.showShift) w += 70; if (state.showShift && state.showCtrl) w += 5; if (state.showCtrl) w += 70;
-            if (w > max_kbd_x) max_kbd_x = w; curY += 30;
-        } else li.shiftCtrlY = -1;
-        
-        li.lowestY = curY; li.mouseX = max_kbd_x + 60; 
-        int mouseBottom = 10 + 45 + 55 + 10; if (mouseBottom > li.lowestY) li.lowestY = mouseBottom;
-        li.mouseRightEdge = li.mouseX + 35 * 2 + 5 + 15; return li;
     }
 
     static void DrawRoundRect(Gdiplus::Graphics& g, int x, int y, int w, int h, int r, Gdiplus::Brush* fill, Gdiplus::Pen* outline) {
@@ -149,7 +87,6 @@ private:
         if (state.showCPS) {
             ULONGLONG now = GetTickCount64();
             while (!state.clickTimes.empty() && now - state.clickTimes.front() > 1000) state.clickTimes.erase(state.clickTimes.begin());
-            
             wchar_t cpsBuf[16]; wsprintfW(cpsBuf, L"%d CPS", (int)state.clickTimes.size());
             Gdiplus::Font cpsFont(&fontFamily, (float)(12 * state.uiScale), Gdiplus::FontStyleBold, Gdiplus::UnitPixel);
             Gdiplus::SolidBrush cpsBrush(Gdiplus::Color(255, GetRValue(state.inactiveText), GetGValue(state.inactiveText), GetBValue(state.inactiveText)));
@@ -173,26 +110,22 @@ private:
 
         if (uMsg == WM_REDRAW_OVERLAY) {
             int width = (int)(state.dynamicWidth * state.uiScale), height = (int)(state.dynamicHeight * state.uiScale);
-            
-            ScopedDC hdcScreen(NULL); 
-            ScopedMemDC hdcMem(hdcScreen);
+            ScopedDC hdcScreen(NULL); ScopedMemDC hdcMem(hdcScreen);
             
             BITMAPINFO bmi = {0}; bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER); bmi.bmiHeader.biWidth = width; bmi.bmiHeader.biHeight = -height; bmi.bmiHeader.biPlanes = 1; bmi.bmiHeader.biBitCount = 32; bmi.bmiHeader.biCompression = BI_RGB;
-            void* pBits = NULL; 
-            
-            ScopedBitmap hBitmap(CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0)); 
+            void* pBits = NULL; ScopedBitmap hBitmap(CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0)); 
             
             {
                 ScopedSelect autoBmp(hdcMem, hBitmap); 
-
                 Gdiplus::Graphics g(hdcMem); g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias); g.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
                 if (!state.isLocked) { Gdiplus::SolidBrush bg(Gdiplus::Color(100, 0, 0, 0)); g.FillRectangle(&bg, 0, 0, width, height); }
 
-                LayoutInfo li = ComputeLayout();
+                LayoutInfo li = LayoutEngine::ComputeLayout(state.showExtraKey, state.showSpace, state.showShift, state.showCtrl);
+                
                 for (int i = 0; i < 256; i++) {
                     if (!state.showExtraKey[i]) continue;
                     int bc, br; float ox;
-                    if (GetGridPos(i, bc, ox, br)) {
+                    if (LayoutEngine::GetGridPos(i, bc, ox, br)) {
                         int x = (int)((li.colMap[bc] + ox) * 50) + 15, y = (int)(li.rowMap[br] * 50) + 10;
                         wchar_t txt[4]; DrawButton(g, x, y, 45, 45, GetKeyString(i, txt), state.keys[i]);
                     }
@@ -208,8 +141,7 @@ private:
                 POINT ptSrc = {0, 0}; SIZE size = { width, height }; BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
                 RECT rc; GetWindowRect(hwnd, &rc); POINT ptPos = { rc.left, rc.top };
                 UpdateLayeredWindow(hwnd, hdcScreen, &ptPos, &size, hdcMem, &ptSrc, 0, &blend, ULW_ALPHA);
-            }
-
+            } 
             return 0;
         }
         else if (uMsg == WM_NCHITTEST && !state.isLocked) return HTCAPTION;
@@ -224,7 +156,10 @@ public:
         return hwnd;
     }
     static void UpdateSize() {
-        AppState& state = AppState::Get(); LayoutInfo li = ComputeLayout();
+        AppState& state = AppState::Get(); 
+        
+        LayoutInfo li = LayoutEngine::ComputeLayout(state.showExtraKey, state.showSpace, state.showShift, state.showCtrl);
+        
         state.dynamicHeight = li.lowestY; state.dynamicWidth = li.mouseRightEdge; 
         SetWindowPos(state.hwndOverlay, NULL, 0, 0, (int)(state.dynamicWidth * state.uiScale), (int)(state.dynamicHeight * state.uiScale), SWP_NOMOVE | SWP_NOZORDER);
         PostMessage(state.hwndOverlay, WM_REDRAW_OVERLAY, 0, 0);
