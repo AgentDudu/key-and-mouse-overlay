@@ -1,3 +1,20 @@
-*.o
-*.exe
+# Build and Output directories
+build/
+bin/
+out/
+.vs/
+.vscode/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+*.cmake
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# User-specific App configs
 config.ini
+profile_*.ini
