@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <gdiplus.h>
 #include "AppState.h"
+#include "Win32Utils.h"
 #include "resource.h" 
 
 #define WM_REDRAW_OVERLAY (WM_USER + 1)
@@ -94,6 +95,7 @@ private:
     static void DrawButton(Gdiplus::Graphics& g, int x, int y, int w, int h, const wchar_t* text, bool pressed) {
         AppState& state = AppState::Get();
         int sx = (int)(x * state.uiScale), sy = (int)(y * state.uiScale), sw = (int)(w * state.uiScale), sh = (int)(h * state.uiScale);
+        
         int bAlpha = (state.baseAlpha * 255) / 100, hAlpha = (state.highlightAlpha * 255) / 100, oAlpha = (state.outlineAlpha * 255) / 100;
         Gdiplus::Color bgColor = pressed ? Gdiplus::Color(hAlpha, GetRValue(state.activeBg), GetGValue(state.activeBg), GetBValue(state.activeBg)) 
                                          : Gdiplus::Color(bAlpha, GetRValue(state.inactiveBg), GetGValue(state.inactiveBg), GetBValue(state.inactiveBg));
@@ -146,12 +148,9 @@ private:
 
         if (state.showCPS) {
             ULONGLONG now = GetTickCount64();
-            while (!state.clickTimes.empty() && now - state.clickTimes.front() > 1000) {
-                state.clickTimes.erase(state.clickTimes.begin());
-            }
-            int cps = (int)state.clickTimes.size();
-            wchar_t cpsBuf[16]; wsprintfW(cpsBuf, L"%d CPS", cps);
+            while (!state.clickTimes.empty() && now - state.clickTimes.front() > 1000) state.clickTimes.erase(state.clickTimes.begin());
             
+            wchar_t cpsBuf[16]; wsprintfW(cpsBuf, L"%d CPS", (int)state.clickTimes.size());
             Gdiplus::Font cpsFont(&fontFamily, (float)(12 * state.uiScale), Gdiplus::FontStyleBold, Gdiplus::UnitPixel);
             Gdiplus::SolidBrush cpsBrush(Gdiplus::Color(255, GetRValue(state.inactiveText), GetGValue(state.inactiveText), GetBValue(state.inactiveText)));
             Gdiplus::RectF bodyRect((float)sx, (float)(sy + bh + (int)(3 * state.uiScale)), (float)(bw * 2 + gap), (float)bodyH);
@@ -163,12 +162,8 @@ private:
         AppState& state = AppState::Get();
         
         if (uMsg == WM_TIMER && wParam == 2) {
-            ULONGLONG now = GetTickCount64();
-            bool changed = false;
-            while (!state.clickTimes.empty() && now - state.clickTimes.front() > 1000) {
-                state.clickTimes.erase(state.clickTimes.begin());
-                changed = true;
-            }
+            ULONGLONG now = GetTickCount64(); bool changed = false;
+            while (!state.clickTimes.empty() && now - state.clickTimes.front() > 1000) { state.clickTimes.erase(state.clickTimes.begin()); changed = true; }
             if (changed) PostMessage(hwnd, WM_REDRAW_OVERLAY, 0, 0);
             if (state.clickTimes.empty()) KillTimer(hwnd, 2); 
             return 0;
@@ -178,11 +173,18 @@ private:
 
         if (uMsg == WM_REDRAW_OVERLAY) {
             int width = (int)(state.dynamicWidth * state.uiScale), height = (int)(state.dynamicHeight * state.uiScale);
-            HDC hdcScreen = GetDC(NULL); HDC hdcMem = CreateCompatibleDC(hdcScreen);
+            
+            ScopedDC hdcScreen(NULL); 
+            ScopedMemDC hdcMem(hdcScreen);
+            
             BITMAPINFO bmi = {0}; bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER); bmi.bmiHeader.biWidth = width; bmi.bmiHeader.biHeight = -height; bmi.bmiHeader.biPlanes = 1; bmi.bmiHeader.biBitCount = 32; bmi.bmiHeader.biCompression = BI_RGB;
-            void* pBits = NULL; HBITMAP hBitmap = CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0); SelectObject(hdcMem, hBitmap);
-
+            void* pBits = NULL; 
+            
+            ScopedBitmap hBitmap(CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0)); 
+            
             {
+                ScopedSelect autoBmp(hdcMem, hBitmap); 
+
                 Gdiplus::Graphics g(hdcMem); g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias); g.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
                 if (!state.isLocked) { Gdiplus::SolidBrush bg(Gdiplus::Color(100, 0, 0, 0)); g.FillRectangle(&bg, 0, 0, width, height); }
 
@@ -202,12 +204,13 @@ private:
                     if (state.showCtrl) DrawButton(g, curX, li.shiftCtrlY, 70, 25, L"CTRL", state.keys[VK_LCONTROL] || state.keys[VK_CONTROL]);
                 }
                 DrawMouseUI(g, li.mouseX, 10);
+                
+                POINT ptSrc = {0, 0}; SIZE size = { width, height }; BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+                RECT rc; GetWindowRect(hwnd, &rc); POINT ptPos = { rc.left, rc.top };
+                UpdateLayeredWindow(hwnd, hdcScreen, &ptPos, &size, hdcMem, &ptSrc, 0, &blend, ULW_ALPHA);
             }
 
-            POINT ptSrc = {0, 0}; SIZE size = { width, height }; BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
-            RECT rc; GetWindowRect(hwnd, &rc); POINT ptPos = { rc.left, rc.top };
-            UpdateLayeredWindow(hwnd, hdcScreen, &ptPos, &size, hdcMem, &ptSrc, 0, &blend, ULW_ALPHA);
-            DeleteObject(hBitmap); DeleteDC(hdcMem); ReleaseDC(NULL, hdcScreen); return 0;
+            return 0;
         }
         else if (uMsg == WM_NCHITTEST && !state.isLocked) return HTCAPTION;
         return DefWindowProc(hwnd, uMsg, wParam, lParam);

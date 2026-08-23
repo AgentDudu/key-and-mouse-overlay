@@ -3,6 +3,7 @@
 #include <commdlg.h>
 #include <shellapi.h>
 #include "AppState.h"
+#include "Win32Utils.h"
 #include "OverlayUI.h"
 #include "ExtraKeysUI.h" 
 #include "resource.h"
@@ -62,13 +63,7 @@ private:
             EnumChildWindows(hwnd, [](HWND child, LPARAM font) -> BOOL { SendMessageW(child, WM_SETFONT, font, TRUE); return TRUE; }, (LPARAM)state.hFontUI);
             return 0;
         }
-        
-        else if (uMsg == WM_REFRESH_UI) {
-            SendMessageW(GetDlgItem(hwnd, 5), CB_SETCURSEL, state.currentScheme, 0);
-            InvalidateRect(hwnd, NULL, TRUE); 
-            return 0;
-        }
-
+        else if (uMsg == WM_REFRESH_UI) { SendMessageW(GetDlgItem(hwnd, 5), CB_SETCURSEL, state.currentScheme, 0); InvalidateRect(hwnd, NULL, TRUE); return 0; }
         else if (uMsg == WM_TRAYICON) {
             if (lParam == WM_LBUTTONUP) { ShowWindow(hwnd, IsWindowVisible(hwnd) ? SW_HIDE : SW_RESTORE); SetForegroundWindow(hwnd); }
             else if (lParam == WM_RBUTTONUP) {
@@ -82,35 +77,30 @@ private:
         }
 
         else if (uMsg == WM_PAINT) {
-            PAINTSTRUCT ps; HDC hdc = BeginPaint(hwnd, &ps);
-            RECT rcBase = { 110, 210, 135, 235 }; HBRUSH brBase = CreateSolidBrush(state.inactiveBg); FillRect(hdc, &rcBase, brBase); FrameRect(hdc, &rcBase, (HBRUSH)GetStockObject(BLACK_BRUSH)); DeleteObject(brBase);
-            RECT rcHigh = { 110, 245, 135, 270 }; HBRUSH brHigh = CreateSolidBrush(state.activeBg); FillRect(hdc, &rcHigh, brHigh); FrameRect(hdc, &rcHigh, (HBRUSH)GetStockObject(BLACK_BRUSH)); DeleteObject(brHigh);
-            RECT rcOut  = { 110, 280, 135, 305 }; HBRUSH brOut = CreateSolidBrush(state.outlineColor); FillRect(hdc, &rcOut, brOut); FrameRect(hdc, &rcOut, (HBRUSH)GetStockObject(BLACK_BRUSH)); DeleteObject(brOut);
+            ScopedPaint hdc(hwnd); 
             
-            SetBkMode(hdc, TRANSPARENT); SelectObject(hdc, state.hFontUI); 
+            RECT rcBase = { 110, 210, 135, 235 }; ScopedBrush brBase(CreateSolidBrush(state.inactiveBg)); FillRect(hdc, &rcBase, brBase); FrameRect(hdc, &rcBase, (HBRUSH)GetStockObject(BLACK_BRUSH)); 
+            RECT rcHigh = { 110, 245, 135, 270 }; ScopedBrush brHigh(CreateSolidBrush(state.activeBg)); FillRect(hdc, &rcHigh, brHigh); FrameRect(hdc, &rcHigh, (HBRUSH)GetStockObject(BLACK_BRUSH)); 
+            RECT rcOut  = { 110, 280, 135, 305 }; ScopedBrush brOut(CreateSolidBrush(state.outlineColor)); FillRect(hdc, &rcOut, brOut); FrameRect(hdc, &rcOut, (HBRUSH)GetStockObject(BLACK_BRUSH)); 
+            
+            SetBkMode(hdc, TRANSPARENT); 
+            ScopedSelect autoFont(hdc, state.hFontUI); 
+
             wchar_t buf[16];
             wsprintfW(buf, L"%d%%", state.baseAlpha); TextOutW(hdc, 168, 213, buf, lstrlenW(buf));
             wsprintfW(buf, L"%d%%", state.highlightAlpha); TextOutW(hdc, 168, 248, buf, lstrlenW(buf));
             wsprintfW(buf, L"%d%%", state.outlineAlpha); TextOutW(hdc, 168, 283, buf, lstrlenW(buf));
-            EndPaint(hwnd, &ps); return 0;
+            
+            return 0;
         }
         else if (uMsg == WM_COMMAND) {
             int wmId = LOWORD(wParam);
-            
             if (HIWORD(wParam) == CBN_SELCHANGE && wmId == 9) {
-                state.SaveConfig(); 
-                state.currentProfile = SendMessageW((HWND)lParam, CB_GETCURSEL, 0, 0);
-                state.LoadConfig(false);
-                
-                int savedX = GetPrivateProfileIntW(L"Settings", L"OverlayX", -1, state.profileIniPath);
-                int savedY = GetPrivateProfileIntW(L"Settings", L"OverlayY", -1, state.profileIniPath);
+                state.SaveConfig(); state.currentProfile = SendMessageW((HWND)lParam, CB_GETCURSEL, 0, 0); state.LoadConfig(false);
+                int savedX = GetPrivateProfileIntW(L"Settings", L"OverlayX", -1, state.profileIniPath); int savedY = GetPrivateProfileIntW(L"Settings", L"OverlayY", -1, state.profileIniPath);
                 if (savedX != -1 && savedY != -1) SetWindowPos(state.hwndOverlay, NULL, savedX, savedY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-                
-                SendMessage(hwnd, WM_REFRESH_UI, 0, 0);
-                if (state.hwndExtraKeys) SendMessage(state.hwndExtraKeys, WM_REFRESH_UI, 0, 0);
-                OverlayUI::UpdateSize();
+                SendMessage(hwnd, WM_REFRESH_UI, 0, 0); if (state.hwndExtraKeys) SendMessage(state.hwndExtraKeys, WM_REFRESH_UI, 0, 0); OverlayUI::UpdateSize();
             }
-
             if (HIWORD(wParam) == CBN_SELCHANGE && wmId == 5) { HWND hCombo = (HWND)lParam; int sel = SendMessageW(hCombo, CB_GETCURSEL, 0, 0); if (sel != 3) { state.currentScheme = sel; 
                 if (sel == 0) { state.activeBg = RGB(0, 255, 204); state.inactiveBg = RGB(34, 34, 34); state.activeText = RGB(0, 0, 0); state.inactiveText = RGB(255, 255, 255); } 
                 else if (sel == 1) { state.activeBg = RGB(255, 70, 70); state.inactiveBg = RGB(45, 20, 20); state.activeText = RGB(255, 255, 255); state.inactiveText = RGB(255, 255, 255); } 
@@ -141,6 +131,6 @@ public:
     static HWND Create(HINSTANCE hInstance) {
         WNDCLASSW wc = { }; wc.lpfnWndProc = WindowProc; wc.hInstance = hInstance; wc.lpszClassName = L"ControlClass";
         wc.hCursor = LoadCursor(NULL, IDC_ARROW); wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APP_ICON)); RegisterClassW(&wc);
-        return CreateWindowExW(0, L"ControlClass", L"Overlay Settings", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 260, 400, NULL, NULL, hInstance, NULL); // Adjusted height
+        return CreateWindowExW(0, L"ControlClass", L"Overlay Settings", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 260, 400, NULL, NULL, hInstance, NULL); 
     }
 };
