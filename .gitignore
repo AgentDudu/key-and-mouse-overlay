@@ -4,6 +4,7 @@ bin/
 out/
 .vs/
 .vscode/
+Testing/
 
 # CMake generated files
 CMakeCache.txt
