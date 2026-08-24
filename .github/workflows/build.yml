@@ -1,0 +1,31 @@
+name: Build and Publish Overlay
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Configure CMake
+      run: cmake -B build
+
+    - name: Build the Application
+      run: cmake --build build --config Release
+
+    - name: Prepare Release Folder
+      run: |
+        mkdir ReleaseApp
+        copy build\Release\Overlay.exe ReleaseApp\
+        
+    - name: Upload as Public Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: GamerOverlay-Windows
+        path: ReleaseApp\Overlay.exe
