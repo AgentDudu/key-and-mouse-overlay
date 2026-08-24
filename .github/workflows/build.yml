@@ -19,10 +19,11 @@ jobs:
     - name: Build the Application
       run: cmake --build build --config Release
         
+    - name: Move EXE to Root Folder
+      run: copy build\Release\Overlay.exe .\Overlay.exe
+        
     - name: Upload as Public Artifact
       uses: actions/upload-artifact@v4
       with:
         name: GamerOverlay-Windows
-        path: |
-          build/Release/Overlay.exe
-          build/Overlay.exe
+        path: Overlay.exe
