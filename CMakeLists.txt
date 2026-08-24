@@ -25,7 +25,8 @@ set(RESOURCES res/Resource.rc)
 add_executable(Overlay WIN32 ${SOURCES} ${HEADERS} ${RESOURCES})
 
 target_include_directories(Overlay PRIVATE include res)
-target_link_libraries(Overlay PRIVATE user32 gdi32 comdlg32 gdiplus comctl32)
+
+target_link_libraries(Overlay PRIVATE user32 gdi32 comdlg32 gdiplus comctl32 shell32)
 
 if(MINGW)
     target_link_options(Overlay PRIVATE -static -static-libgcc -static-libstdc++)

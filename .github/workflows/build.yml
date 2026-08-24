@@ -18,14 +18,11 @@ jobs:
 
     - name: Build the Application
       run: cmake --build build --config Release
-
-    - name: Prepare Release Folder
-      run: |
-        mkdir ReleaseApp
-        copy build\Release\Overlay.exe ReleaseApp\
         
     - name: Upload as Public Artifact
       uses: actions/upload-artifact@v4
       with:
         name: GamerOverlay-Windows
-        path: ReleaseApp\Overlay.exe
+        path: |
+          build/Release/Overlay.exe
+          build/Overlay.exe
