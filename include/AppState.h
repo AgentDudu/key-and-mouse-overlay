@@ -33,7 +33,9 @@ public:
     bool showMB4 = true, showMB5 = true;
     
     bool showCPS = false;
-    bool enableFadeAnim = true;
+    bool enableFadeAnim = true; 
+    
+    int targetFPS = 60; 
     
     std::vector<ULONGLONG> clickTimes; 
     
@@ -92,7 +94,8 @@ public:
         WriteInt(L"uiScale", (int)(uiScale * 100)); WriteInt(L"currentScheme", currentScheme);
         WriteInt(L"showSpace", showSpace); WriteInt(L"showShift", showShift); WriteInt(L"showCtrl", showCtrl); 
         WriteInt(L"showMB4", showMB4); WriteInt(L"showMB5", showMB5); WriteInt(L"showCPS", showCPS); 
-        WriteInt(L"enableFadeAnim", enableFadeAnim);
+        WriteInt(L"enableFadeAnim", enableFadeAnim); 
+        WriteInt(L"targetFPS", targetFPS);
         
         wchar_t keyBuf[1024] = {0};
         for (int i = 0; i < 256; i++) {
@@ -121,7 +124,8 @@ public:
         uiScale = ReadInt(L"uiScale", 100) / 100.0f; currentScheme = ReadInt(L"currentScheme", 0);
         showSpace = ReadInt(L"showSpace", 1); showShift = ReadInt(L"showShift", 1); showCtrl = ReadInt(L"showCtrl", 1); 
         showMB4 = ReadInt(L"showMB4", 1); showMB5 = ReadInt(L"showMB5", 1); showCPS = ReadInt(L"showCPS", 0); 
-        enableFadeAnim = ReadInt(L"enableFadeAnim", 1);
+        enableFadeAnim = ReadInt(L"enableFadeAnim", 1); 
+        targetFPS = ReadInt(L"targetFPS", 60); // <--- LOAD FPS
         
         wchar_t keyBuf[1024] = {0};
         GetPrivateProfileStringW(L"Settings", L"ActiveKeys", L"", keyBuf, 1024, profileIniPath);

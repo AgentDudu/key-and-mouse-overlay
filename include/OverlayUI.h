@@ -41,13 +41,11 @@ private:
     static void DrawButton(Gdiplus::Graphics& g, int x, int y, int w, int h, const wchar_t* text, float animFactor) {
         AppState& state = AppState::Get();
         int sx = (int)(x * state.uiScale), sy = (int)(y * state.uiScale), sw = (int)(w * state.uiScale), sh = (int)(h * state.uiScale);
-        
         int bAlpha = (state.baseAlpha * 255) / 100, hAlpha = (state.highlightAlpha * 255) / 100, oAlpha = (state.outlineAlpha * 255) / 100;
         
         Gdiplus::Color cInactive(bAlpha, GetRValue(state.inactiveBg), GetGValue(state.inactiveBg), GetBValue(state.inactiveBg));
         Gdiplus::Color cActive(hAlpha, GetRValue(state.activeBg), GetGValue(state.activeBg), GetBValue(state.activeBg));
         Gdiplus::SolidBrush brush(InterpolateColor(cInactive, cActive, animFactor));
-        
         Gdiplus::Pen outlinePen(Gdiplus::Color(oAlpha, GetRValue(state.outlineColor), GetGValue(state.outlineColor), GetBValue(state.outlineColor)), 1.5f);
 
         g.FillRectangle(&brush, sx, sy, sw, sh);
@@ -75,7 +73,6 @@ private:
             Gdiplus::Color cActive(hAlpha, GetRValue(state.activeBg), GetGValue(state.activeBg), GetBValue(state.activeBg));
             return InterpolateColor(cInactive, cActive, factor);
         };
-        
         auto makeTextColor = [&](float factor) {
             Gdiplus::Color tInactive(255, GetRValue(state.inactiveText), GetGValue(state.inactiveText), GetBValue(state.inactiveText));
             Gdiplus::Color tActive(255, GetRValue(state.activeText), GetGValue(state.activeText), GetBValue(state.activeText));
@@ -85,7 +82,6 @@ private:
         Gdiplus::SolidBrush lmb(makeColor(state.mouseAnim[0])), rmb(makeColor(state.mouseAnim[1])), body(makeColor(0.0f));
         Gdiplus::SolidBrush m4(makeColor(state.mouseAnim[3])), m5(makeColor(state.mouseAnim[4]));
         Gdiplus::SolidBrush wheel(makeColor(state.mouseAnim[2]));
-        
         Gdiplus::Pen outPen(Gdiplus::Color(oAlpha, GetRValue(state.outlineColor), GetGValue(state.outlineColor), GetBValue(state.outlineColor)), 1.5f);
         Gdiplus::Pen* pOut = (oAlpha > 0) ? &outPen : nullptr;
 
@@ -98,8 +94,7 @@ private:
         DrawRoundRect(g, sx, sy + bh + (int)(3 * state.uiScale), bw * 2 + gap, bodyH, corner * 2, &body, pOut);
         DrawRoundRect(g, sx + bw - (int)(1 * state.uiScale), sy + (int)(15 * state.uiScale), gap + (int)(2 * state.uiScale), (int)(18 * state.uiScale), (int)(2*state.uiScale), &wheel, pOut);
 
-        Gdiplus::SolidBrush textL(makeTextColor(state.mouseAnim[0]));
-        Gdiplus::SolidBrush textR(makeTextColor(state.mouseAnim[1]));
+        Gdiplus::SolidBrush textL(makeTextColor(state.mouseAnim[0])); Gdiplus::SolidBrush textR(makeTextColor(state.mouseAnim[1]));
         Gdiplus::FontFamily fontFamily(L"Segoe UI"); Gdiplus::Font font(&fontFamily, (float)(16 * state.uiScale), Gdiplus::FontStyleBold, Gdiplus::UnitPixel);
         Gdiplus::StringFormat format; format.SetAlignment(Gdiplus::StringAlignmentCenter); format.SetLineAlignment(Gdiplus::StringAlignmentCenter);
         g.DrawString(L"L", -1, &font, Gdiplus::RectF((float)sx, (float)sy, (float)bw, (float)bh), &format, &textL);
@@ -120,46 +115,51 @@ private:
         AppState& state = AppState::Get();
         
         if (uMsg == WM_CREATE) {
-            SetTimer(hwnd, 3, 16, NULL); 
+            int interval = 1000 / (state.targetFPS > 0 ? state.targetFPS : 60);
+            SetTimer(hwnd, 3, interval, NULL); 
+            return 0;
+        }
+        
+        if (uMsg == WM_REFRESH_UI) {
+            KillTimer(hwnd, 3);
+            int interval = 1000 / (state.targetFPS > 0 ? state.targetFPS : 60);
+            SetTimer(hwnd, 3, interval, NULL);
             return 0;
         }
 
         if (uMsg == WM_TIMER && wParam == 3) { 
             bool isAnimating = false;
             
+            float tickMs = 1000.0f / (state.targetFPS > 0 ? state.targetFPS : 60);
+            float fadeInStep = tickMs / 50.0f;   
+            float fadeOutStep = tickMs / 150.0f; 
+
             auto UpdateAnim = [&](bool isPressed, float& animVal) {
                 if (state.enableFadeAnim) {
                     if (isPressed) {
                         if (animVal < 1.0f) { 
-                            animVal += 0.3f; 
+                            animVal += fadeInStep; 
                             if (animVal > 1.0f) animVal = 1.0f; 
                             isAnimating = true; 
                         }
                     } else {
                         if (animVal > 0.0f) { 
-                            animVal -= 0.1f; 
+                            animVal -= fadeOutStep; 
                             if (animVal < 0.0f) animVal = 0.0f; 
                             isAnimating = true; 
                         }
                     }
                 } else {
                     float target = isPressed ? 1.0f : 0.0f;
-                    if (animVal != target) {
-                        animVal = target;
-                        isAnimating = true;
-                    }
+                    if (animVal != target) { animVal = target; isAnimating = true; }
                 }
             };
 
             for (int i = 0; i < 256; i++) UpdateAnim(state.keys[i], state.keyAnim[i]);
             UpdateAnim(state.keys[VK_LSHIFT] || state.keys[VK_SHIFT], state.shiftAnim);
             UpdateAnim(state.keys[VK_LCONTROL] || state.keys[VK_CONTROL], state.ctrlAnim);
-            
-            UpdateAnim(state.lmb, state.mouseAnim[0]);
-            UpdateAnim(state.rmb, state.mouseAnim[1]);
-            UpdateAnim(state.mmb || state.isScrolling, state.mouseAnim[2]);
-            UpdateAnim(state.mb4, state.mouseAnim[3]);
-            UpdateAnim(state.mb5, state.mouseAnim[4]);
+            UpdateAnim(state.lmb, state.mouseAnim[0]); UpdateAnim(state.rmb, state.mouseAnim[1]);
+            UpdateAnim(state.mmb || state.isScrolling, state.mouseAnim[2]); UpdateAnim(state.mb4, state.mouseAnim[3]); UpdateAnim(state.mb5, state.mouseAnim[4]);
 
             if (isAnimating || state.needsRedraw) {
                 state.needsRedraw = false;
@@ -181,7 +181,6 @@ private:
         if (uMsg == WM_REDRAW_OVERLAY) {
             int width = (int)(state.dynamicWidth * state.uiScale), height = (int)(state.dynamicHeight * state.uiScale);
             ScopedDC hdcScreen(NULL); ScopedMemDC hdcMem(hdcScreen);
-            
             BITMAPINFO bmi = {0}; bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER); bmi.bmiHeader.biWidth = width; bmi.bmiHeader.biHeight = -height; bmi.bmiHeader.biPlanes = 1; bmi.bmiHeader.biBitCount = 32; bmi.bmiHeader.biCompression = BI_RGB;
             void* pBits = NULL; ScopedBitmap hBitmap(CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0)); 
             
@@ -191,7 +190,6 @@ private:
                 if (!state.isLocked) { Gdiplus::SolidBrush bg(Gdiplus::Color(100, 0, 0, 0)); g.FillRectangle(&bg, 0, 0, width, height); }
 
                 LayoutInfo li = LayoutEngine::ComputeLayout(state.showExtraKey, state.showSpace, state.showShift, state.showCtrl);
-                
                 for (int i = 0; i < 256; i++) {
                     if (!state.showExtraKey[i]) continue;
                     int bc, br; float ox;

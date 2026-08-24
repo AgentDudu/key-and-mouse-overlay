@@ -38,6 +38,7 @@ private:
 
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         AppState& state = AppState::Get();
+        
         if (uMsg == WM_CREATE) {
             NOTIFYICONDATAW nid = {}; nid.cbSize = sizeof(NOTIFYICONDATAW); nid.hWnd = hwnd; nid.uID = 1; nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
             nid.uCallbackMessage = WM_TRAYICON; nid.hIcon = LoadIcon((HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), MAKEINTRESOURCE(IDI_APP_ICON));
@@ -58,23 +59,31 @@ private:
             HWND hcFade = CreateWindowW(L"BUTTON", L"Fade Animation", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 20, 155, 200, 20, hwnd, (HMENU)19, NULL, NULL);
             if (state.enableFadeAnim) SendMessage(hcFade, BM_SETCHECK, BST_CHECKED, 0);
 
-            CreateWindowW(L"STATIC", L"Color Scheme:", WS_CHILD | WS_VISIBLE, 20, 190, 100, 20, hwnd, NULL, NULL, NULL);
-            HWND hCombo = CreateWindowW(L"COMBOBOX", NULL, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE, 20, 210, 200, 100, hwnd, (HMENU)5, NULL, NULL);
+            CreateWindowW(L"STATIC", L"Engine FPS:", WS_CHILD | WS_VISIBLE, 20, 185, 100, 20, hwnd, NULL, NULL, NULL);
+            HWND hFps = CreateWindowW(L"COMBOBOX", NULL, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE, 100, 182, 120, 100, hwnd, (HMENU)20, NULL, NULL);
+            SendMessageW(hFps, CB_ADDSTRING, 0, (LPARAM)L"60 FPS");
+            SendMessageW(hFps, CB_ADDSTRING, 0, (LPARAM)L"144 FPS");
+            SendMessageW(hFps, CB_ADDSTRING, 0, (LPARAM)L"240 FPS");
+            int fpsIdx = (state.targetFPS == 240) ? 2 : (state.targetFPS == 144) ? 1 : 0;
+            SendMessageW(hFps, CB_SETCURSEL, fpsIdx, 0);
+
+            CreateWindowW(L"STATIC", L"Color Scheme:", WS_CHILD | WS_VISIBLE, 20, 220, 100, 20, hwnd, NULL, NULL, NULL);
+            HWND hCombo = CreateWindowW(L"COMBOBOX", NULL, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE, 20, 240, 200, 100, hwnd, (HMENU)5, NULL, NULL);
             SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM)L"Cyan (Default)"); SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM)L"Red");
             SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM)L"Green"); SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM)L"Custom...");
             SendMessageW(hCombo, CB_SETCURSEL, state.currentScheme, 0);
 
-            CreateWindowW(L"BUTTON", L"Pick Base", WS_CHILD | WS_VISIBLE, 20, 245, 80, 25, hwnd, (HMENU)6, NULL, NULL);
-            CreateWindowW(L"BUTTON", L"-", WS_CHILD | WS_VISIBLE, 145, 245, 20, 25, hwnd, (HMENU)11, NULL, NULL);
-            CreateWindowW(L"BUTTON", L"+", WS_CHILD | WS_VISIBLE, 200, 245, 20, 25, hwnd, (HMENU)12, NULL, NULL);
-            CreateWindowW(L"BUTTON", L"Pick High", WS_CHILD | WS_VISIBLE, 20, 280, 80, 25, hwnd, (HMENU)7, NULL, NULL);
-            CreateWindowW(L"BUTTON", L"-", WS_CHILD | WS_VISIBLE, 145, 280, 20, 25, hwnd, (HMENU)13, NULL, NULL);
-            CreateWindowW(L"BUTTON", L"+", WS_CHILD | WS_VISIBLE, 200, 280, 20, 25, hwnd, (HMENU)14, NULL, NULL);
-            CreateWindowW(L"BUTTON", L"Pick Outln", WS_CHILD | WS_VISIBLE, 20, 315, 80, 25, hwnd, (HMENU)16, NULL, NULL);
-            CreateWindowW(L"BUTTON", L"-", WS_CHILD | WS_VISIBLE, 145, 315, 20, 25, hwnd, (HMENU)17, NULL, NULL);
-            CreateWindowW(L"BUTTON", L"+", WS_CHILD | WS_VISIBLE, 200, 315, 20, 25, hwnd, (HMENU)18, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"Pick Base", WS_CHILD | WS_VISIBLE, 20, 275, 80, 25, hwnd, (HMENU)6, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"-", WS_CHILD | WS_VISIBLE, 145, 275, 20, 25, hwnd, (HMENU)11, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"+", WS_CHILD | WS_VISIBLE, 200, 275, 20, 25, hwnd, (HMENU)12, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"Pick High", WS_CHILD | WS_VISIBLE, 20, 310, 80, 25, hwnd, (HMENU)7, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"-", WS_CHILD | WS_VISIBLE, 145, 310, 20, 25, hwnd, (HMENU)13, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"+", WS_CHILD | WS_VISIBLE, 200, 310, 20, 25, hwnd, (HMENU)14, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"Pick Outln", WS_CHILD | WS_VISIBLE, 20, 345, 80, 25, hwnd, (HMENU)16, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"-", WS_CHILD | WS_VISIBLE, 145, 345, 20, 25, hwnd, (HMENU)17, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"+", WS_CHILD | WS_VISIBLE, 200, 345, 20, 25, hwnd, (HMENU)18, NULL, NULL);
 
-            CreateWindowW(L"BUTTON", L"Hide to Tray (Right-Click Tray to Exit)", WS_CHILD | WS_VISIBLE, 20, 355, 200, 30, hwnd, (HMENU)4, NULL, NULL);
+            CreateWindowW(L"BUTTON", L"Hide to Tray (Right-Click Tray to Exit)", WS_CHILD | WS_VISIBLE, 20, 385, 200, 30, hwnd, (HMENU)4, NULL, NULL);
             
             EnumChildWindows(hwnd, [](HWND child, LPARAM font) -> BOOL { SendMessageW(child, WM_SETFONT, font, TRUE); return TRUE; }, (LPARAM)state.hFontUI);
             return 0;
@@ -83,7 +92,14 @@ private:
         else if (uMsg == WM_REFRESH_UI) { 
             SendMessageW(GetDlgItem(hwnd, 5), CB_SETCURSEL, state.currentScheme, 0); 
             SendMessageW(GetDlgItem(hwnd, 19), BM_SETCHECK, state.enableFadeAnim ? BST_CHECKED : BST_UNCHECKED, 0);
-            InvalidateRect(hwnd, NULL, TRUE); return 0; 
+            
+            int fpsIdx = (state.targetFPS == 240) ? 2 : (state.targetFPS == 144) ? 1 : 0;
+            SendMessageW(GetDlgItem(hwnd, 20), CB_SETCURSEL, fpsIdx, 0);
+            
+            InvalidateRect(hwnd, NULL, TRUE); 
+            
+            if (state.hwndOverlay) SendMessage(state.hwndOverlay, WM_REFRESH_UI, 0, 0);
+            return 0; 
         }
         else if (uMsg == WM_TRAYICON) {
             if (lParam == WM_LBUTTONUP) { ShowWindow(hwnd, IsWindowVisible(hwnd) ? SW_HIDE : SW_RESTORE); SetForegroundWindow(hwnd); }
@@ -98,19 +114,19 @@ private:
         }
         else if (uMsg == WM_PAINT) {
             ScopedPaint hdc(hwnd); 
-            RECT rcBase = { 110, 245, 135, 270 }; ScopedBrush brBase(CreateSolidBrush(state.inactiveBg)); FillRect(hdc, &rcBase, brBase); FrameRect(hdc, &rcBase, (HBRUSH)GetStockObject(BLACK_BRUSH)); 
-            RECT rcHigh = { 110, 280, 135, 305 }; ScopedBrush brHigh(CreateSolidBrush(state.activeBg)); FillRect(hdc, &rcHigh, brHigh); FrameRect(hdc, &rcHigh, (HBRUSH)GetStockObject(BLACK_BRUSH)); 
-            RECT rcOut  = { 110, 315, 135, 340 }; ScopedBrush brOut(CreateSolidBrush(state.outlineColor)); FillRect(hdc, &rcOut, brOut); FrameRect(hdc, &rcOut, (HBRUSH)GetStockObject(BLACK_BRUSH)); 
+            RECT rcBase = { 110, 275, 135, 300 }; ScopedBrush brBase(CreateSolidBrush(state.inactiveBg)); FillRect(hdc, &rcBase, brBase); FrameRect(hdc, &rcBase, (HBRUSH)GetStockObject(BLACK_BRUSH)); 
+            RECT rcHigh = { 110, 310, 135, 335 }; ScopedBrush brHigh(CreateSolidBrush(state.activeBg)); FillRect(hdc, &rcHigh, brHigh); FrameRect(hdc, &rcHigh, (HBRUSH)GetStockObject(BLACK_BRUSH)); 
+            RECT rcOut  = { 110, 345, 135, 370 }; ScopedBrush brOut(CreateSolidBrush(state.outlineColor)); FillRect(hdc, &rcOut, brOut); FrameRect(hdc, &rcOut, (HBRUSH)GetStockObject(BLACK_BRUSH)); 
+            
             SetBkMode(hdc, TRANSPARENT); ScopedSelect autoFont(hdc, state.hFontUI); 
             wchar_t buf[16];
-            wsprintfW(buf, L"%d%%", state.baseAlpha); TextOutW(hdc, 168, 248, buf, lstrlenW(buf));
-            wsprintfW(buf, L"%d%%", state.highlightAlpha); TextOutW(hdc, 168, 283, buf, lstrlenW(buf));
-            wsprintfW(buf, L"%d%%", state.outlineAlpha); TextOutW(hdc, 168, 318, buf, lstrlenW(buf));
+            wsprintfW(buf, L"%d%%", state.baseAlpha); TextOutW(hdc, 168, 278, buf, lstrlenW(buf));
+            wsprintfW(buf, L"%d%%", state.highlightAlpha); TextOutW(hdc, 168, 313, buf, lstrlenW(buf));
+            wsprintfW(buf, L"%d%%", state.outlineAlpha); TextOutW(hdc, 168, 348, buf, lstrlenW(buf));
             return 0; 
         }
         else if (uMsg == WM_COMMAND) {
             int wmId = LOWORD(wParam);
-            
             if (HIWORD(wParam) == CBN_SELCHANGE && wmId == 9) {
                 state.SaveConfig(); state.currentProfile = SendMessageW((HWND)lParam, CB_GETCURSEL, 0, 0); state.LoadConfig(false);
                 int savedX = GetPrivateProfileIntW(L"Settings", L"OverlayX", -1, state.profileIniPath); 
@@ -124,6 +140,13 @@ private:
                 }
                 
                 SendMessage(hwnd, WM_REFRESH_UI, 0, 0); if (state.hwndExtraKeys) SendMessage(state.hwndExtraKeys, WM_REFRESH_UI, 0, 0); OverlayUI::UpdateSize();
+            }
+
+            if (HIWORD(wParam) == CBN_SELCHANGE && wmId == 20) { 
+                HWND hCombo = (HWND)lParam; int sel = SendMessageW(hCombo, CB_GETCURSEL, 0, 0); 
+                state.targetFPS = (sel == 2) ? 240 : (sel == 1) ? 144 : 60;
+                
+                if (state.hwndOverlay) SendMessage(state.hwndOverlay, WM_REFRESH_UI, 0, 0);
             }
 
             if (HIWORD(wParam) == CBN_SELCHANGE && wmId == 5) { HWND hCombo = (HWND)lParam; int sel = SendMessageW(hCombo, CB_GETCURSEL, 0, 0); if (sel != 3) { state.currentScheme = sel; 
@@ -156,6 +179,6 @@ public:
     static HWND Create(HINSTANCE hInstance) {
         WNDCLASSW wc = { }; wc.lpfnWndProc = WindowProc; wc.hInstance = hInstance; wc.lpszClassName = L"ControlClass";
         wc.hCursor = LoadCursor(NULL, IDC_ARROW); wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APP_ICON)); RegisterClassW(&wc);
-        return CreateWindowExW(0, L"ControlClass", L"Overlay Settings", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 260, 435, NULL, NULL, hInstance, NULL); 
+        return CreateWindowExW(0, L"ControlClass", L"Overlay Settings", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 260, 465, NULL, NULL, hInstance, NULL); 
     }
 };
