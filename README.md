@@ -12,8 +12,8 @@ It runs entirely in the background, uses almost zero PC resources.
 
 ## How to Download & Run
 1. Go to the **[Releases](../../releases)** tab on the right side of this page.
-2. Download the latest **`Overlay.exe`**.
-3. Double-click the file to run it. *(No installation required!)*
+2. Download and extract zip file.
+3. Double-click the **`Overlay.exe`** to run it. *(No installation required!)*
 
 ## How to Use
 * **Unlock & Move:** Press **`Ctrl + Shift + O`** while in-game to unlock the overlay. Click and drag the box to move it anywhere on your screen. Press the hotkey again to lock it in place.
