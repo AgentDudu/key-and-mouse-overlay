@@ -30,6 +30,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     int savedX = GetPrivateProfileIntW(L"Settings", L"OverlayX", -1, AppState::Get().profileIniPath);
     int savedY = GetPrivateProfileIntW(L"Settings", L"OverlayY", -1, AppState::Get().profileIniPath);
     if (savedX != -1 && savedY != -1) {
+        int w = (int)(AppState::Get().dynamicWidth * AppState::Get().uiScale);
+        int h = (int)(AppState::Get().dynamicHeight * AppState::Get().uiScale);
+        Win32Utils::EnsureWindowOnScreen(savedX, savedY, w, h);
         SetWindowPos(AppState::Get().hwndOverlay, NULL, savedX, savedY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
     }
     
